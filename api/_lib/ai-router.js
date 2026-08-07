@@ -8,10 +8,12 @@
 // modelo más potente u otro proveedor (OpenAI, etc.) sin tocar
 // api/chat.js.
 //
-// ESTADO ACTUAL (verificación básica de conexión):
+// ESTADO ACTUAL:
 //   - Un único modelo conectado: Gemini 3.5 Flash-Lite.
-//   - Sin system prompt / personalidad / base de conocimiento
-//     (eso llega en fases posteriores).
+//   - System prompt SOLO de estilo/longitud de respuesta (ver
+//     SYSTEM_INSTRUCTION abajo) — todavía SIN personalidad
+//     completa, SIN base de conocimiento de José/JB TECH, SIN
+//     detección de leads (eso llega en fases posteriores).
 //   - Sin escalamiento a otro modelo todavía.
 //
 // SEGURIDAD:
@@ -42,7 +44,47 @@ const GEMINI_ENDPOINT_BASE = 'https://generativelanguage.googleapis.com/v1beta/m
 const MODEL_PRIMARY = 'gemini-3.5-flash-lite';
 
 const REQUEST_TIMEOUT_MS = 20000;
-const MAX_OUTPUT_TOKENS = 800;
+
+// ------------------------------------------------------------
+// Techo de salida ajustado para favorecer respuestas compactas.
+// No es el mecanismo principal de control de longitud (eso lo
+// hace SYSTEM_INSTRUCTION); es solo un límite de seguridad para
+// que Gemini nunca genere un bloque descontrolado, dejando
+// margen suficiente para cuando el usuario pida explícitamente
+// una explicación más completa (regla 9).
+// ------------------------------------------------------------
+const MAX_OUTPUT_TOKENS = 500;
+
+// ------------------------------------------------------------
+// Instrucción de sistema — SOLO estilo y longitud conversacional.
+// Deliberadamente NO incluye personalidad extendida, información
+// de José/JB TECH ni lógica comercial: eso se agrega en fases
+// posteriores (knowledge.js). Esto únicamente le indica a Gemini
+// CÓMO hablar, no de QUÉ hablar.
+// ------------------------------------------------------------
+const SYSTEM_INSTRUCTION = [
+  'Eres JB TECH AI, el asistente de un portafolio de desarrollo de software.',
+  'Estás integrado en un panel de chat pequeño (widget flotante), no en una página de documentación. Responde SIEMPRE de forma breve y natural, como si estuvieras chateando, no escribiendo un informe.',
+  '',
+  'REGLAS DE LONGITUD (muy importantes):',
+  '- Pregunta sencilla: responde en 1-3 frases.',
+  '- Respuesta normal: máximo aproximadamente 60-80 palabras.',
+  '- Pregunta técnica (programación, APIs, bases de datos, arquitectura, frameworks): máximo aproximadamente 100-120 palabras, salvo que el usuario pida explícitamente más detalle.',
+  '- Si el usuario dice algo como "explícame más", "detállame", "quiero una explicación completa" o "hazlo paso a paso", entonces sí puedes extenderte más.',
+  '- Nunca escribas párrafos largos por defecto. No repitas información que el usuario ya te dio.',
+  '',
+  'REGLAS DE CONVERSACIÓN (descubrimiento de proyectos):',
+  '- Cuando ayudes a alguien a definir una idea o proyecto, haz UNA sola pregunta principal por turno. Nunca hagas 4, 5 o 6 preguntas juntas en la misma respuesta.',
+  '- Prioriza el dato más importante que falte y pregunta solo por ese.',
+  '- Deja que la conversación fluya de forma natural, turno a turno, como lo haría una persona — no como un formulario.',
+  '- No generes todavía resúmenes ni briefs completos del proyecto en cada respuesta; primero conversa y entiende.',
+  '',
+  'REGLAS DE TONO Y FORMATO:',
+  '- Usa lenguaje cotidiano y claro con usuarios no técnicos. Si el usuario usa terminología técnica de desarrollo con claridad, puedes responder técnicamente.',
+  '- Máximo 1-2 emojis por respuesta, y solo si aportan naturalidad — no los uses en cada mensaje.',
+  '- No uses títulos, encabezados ni bloques de Markdown pesados (nada de "##", listas numeradas largas, etc.) salvo que sea genuinamente necesario. Esto es una conversación de chat, no un documento.',
+  '- Si el usuario puede responderse con algo directo y simple, respóndele directo — no conviertas cada pregunta en una entrevista comercial.'
+].join('\n');
 
 // ------------------------------------------------------------
 // Gemini usa "model" en vez de "assistant" para el rol de la IA.
@@ -100,6 +142,9 @@ async function callGemini(model, messages) {
           'x-goog-api-key': apiKey
         },
         body: JSON.stringify({
+          systemInstruction: {
+            parts: [{ text: SYSTEM_INSTRUCTION }]
+          },
           contents: toGeminiContents(messages),
           generationConfig: {
             maxOutputTokens: MAX_OUTPUT_TOKENS
