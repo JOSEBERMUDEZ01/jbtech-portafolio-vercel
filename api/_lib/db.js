@@ -1,31 +1,26 @@
 // ============================================================
 // api/_lib/db.js
 //
-// Persistencia de leads/contactos/conversaciones en Supabase
-// (Postgres administrado).
+// Persistencia de conversaciones, proyectos y contactos en
+// Supabase.
 //
-// Requiere estas variables de entorno en Vercel:
-//
+// Variables de entorno requeridas en Vercel:
 //   SUPABASE_URL
 //   SUPABASE_SECRET_KEY
 //
-// Este archivo corre EXCLUSIVAMENTE en funciones serverless.
-//
-// SUPABASE_SECRET_KEY es una clave privada de servidor con
-// permisos elevados. NUNCA debe exponerse al navegador,
-// incluirse en index.html, enviarse al cliente ni subirse
-// al repositorio.
-//
-// La persistencia se realiza únicamente desde las funciones
-// serverless de Vercel. El navegador no accede directamente
-// a estas tablas.
-//
+// IMPORTANTE:
+// SUPABASE_SECRET_KEY se utiliza únicamente en funciones
+// serverless. Nunca debe exponerse al navegador ni colocarse
+// en código frontend.
 // ============================================================
 
 const { createClient } = require('@supabase/supabase-js');
 
 let cachedClient = null;
 
+// ------------------------------------------------------------
+// Cliente de Supabase
+// ------------------------------------------------------------
 function getClient() {
   if (cachedClient) return cachedClient;
 
@@ -41,8 +36,7 @@ function getClient() {
   cachedClient = createClient(url, key, {
     auth: {
       persistSession: false,
-      autoRefreshToken: false,
-      detectSessionInUrl: false
+      autoRefreshToken: false
     }
   });
 
@@ -50,112 +44,201 @@ function getClient() {
 }
 
 // ------------------------------------------------------------
-// Guarda un paquete completo de lead:
+// Registra de forma segura el error devuelto por Supabase.
 //
-//   1. conversación
-//   2. lead
-//   3. contacto, únicamente si existe consentimiento explícito
+// NO registra la URL, la clave secreta ni datos de contacto.
+// Solo guarda la información técnica necesaria para diagnosticar
+// un error de escritura.
+// ------------------------------------------------------------
+function logSupabaseError(operation, error) {
+  console.error(`SUPABASE ${operation} ERROR:`, {
+    message: error?.message || null,
+    details: error?.details || null,
+    hint: error?.hint || null,
+    code: error?.code || null,
+    status: error?.status || null
+  });
+}
+
+// ------------------------------------------------------------
+// Guarda el paquete completo:
 //
-// Lanza un Error genérico si algo falla.
-// La función que llama a este módulo debe capturarlo y nunca
-// asumir que la operación tuvo éxito si esta función falla.
+// 1. Conversación
+// 2. Información/resumen del proyecto
+// 3. Contacto, únicamente cuando existe consentimiento.
+//
+// Si una operación falla, se lanza un error genérico hacia
+// el endpoint para no revelar información interna al cliente.
+// El detalle real queda únicamente en los logs de Vercel.
 // ------------------------------------------------------------
 async function saveLeadPackage(input) {
   const supabase = getClient();
   const nowIso = new Date().toISOString();
 
   // ----------------------------------------------------------
+  // Validaciones básicas
+  // ----------------------------------------------------------
+  if (!input || typeof input !== 'object') {
+    throw new Error('Datos de persistencia inválidos.');
+  }
+
+  if (!input.sessionId || typeof input.sessionId !== 'string') {
+    throw new Error('Sesión inválida.');
+  }
+
+  // ----------------------------------------------------------
   // 1. Guardar conversación
   // ----------------------------------------------------------
-  const { data: conv, error: convErr } = await supabase
+  const conversationPayload = {
+    session_id: input.sessionId,
+    fecha: nowIso,
+    idioma: input.idioma || 'es',
+    estado: 'lead',
+    consentimiento: input.consent === true,
+    version_politica: input.policyVersion || null
+  };
+
+  const {
+    data: conversation,
+    error: conversationError
+  } = await supabase
     .from('conversaciones')
-    .insert({
-      session_id: input.sessionId,
-      fecha: nowIso,
-      idioma: input.idioma || 'es',
-      estado: 'lead',
-      consentimiento: !!input.consent,
-      version_politica: input.policyVersion || null
-    })
+    .insert(conversationPayload)
     .select('id')
     .single();
 
-  if (convErr || !conv) {
-    throw new Error('No se pudo guardar la conversación en Supabase.');
+  if (conversationError || !conversation) {
+    logSupabaseError(
+      'conversaciones INSERT',
+      conversationError
+    );
+
+    throw new Error(
+      'No se pudo guardar la conversación en Supabase.'
+    );
   }
 
-  const conversationId = conv.id;
+  const conversationId = conversation.id;
+
+  // ----------------------------------------------------------
+  // 2. Guardar información del proyecto
+  // ----------------------------------------------------------
   const summary = input.summary || null;
 
-  // ----------------------------------------------------------
-  // 2. Guardar lead
-  // ----------------------------------------------------------
-  const { error: leadErr } = await supabase
-    .from('leads')
-    .insert({
-      conversation_id: conversationId,
-      proyecto:
-        summary && summary.proyecto
-          ? summary.proyecto
-          : null,
-      necesidad:
-        summary && summary.necesidad
-          ? summary.necesidad
-          : null,
-      problema:
-        summary && summary.problema
-          ? summary.problema
-          : null,
-      objetivo:
-        summary && summary.objetivo
-          ? summary.objetivo
-          : null,
-      solucion_sugerida:
-        summary && summary.solucion_sugerida
-          ? summary.solucion_sugerida
-          : null,
-      lead_score:
-        typeof input.leadScore === 'number'
-          ? input.leadScore
-          : null,
-      estado: 'nuevo',
-      fecha: nowIso
-    });
+  const leadPayload = {
+    conversation_id: conversationId,
 
-  if (leadErr) {
-    throw new Error('No se pudo guardar el lead en Supabase.');
+    proyecto:
+      summary && summary.proyecto
+        ? String(summary.proyecto).slice(0, 1000)
+        : null,
+
+    necesidad:
+      summary && summary.necesidad
+        ? String(summary.necesidad).slice(0, 2000)
+        : null,
+
+    problema:
+      summary && summary.problema
+        ? String(summary.problema).slice(0, 2000)
+        : null,
+
+    objetivo:
+      summary && summary.objetivo
+        ? String(summary.objetivo).slice(0, 2000)
+        : null,
+
+    solucion_sugerida:
+      summary && summary.solucion_sugerida
+        ? String(summary.solucion_sugerida).slice(0, 2000)
+        : null,
+
+    lead_score:
+      typeof input.leadScore === 'number'
+        ? Math.max(0, Math.min(100, Math.round(input.leadScore)))
+        : null,
+
+    estado: 'nuevo',
+    fecha: nowIso
+  };
+
+  const {
+    error: leadError
+  } = await supabase
+    .from('leads')
+    .insert(leadPayload);
+
+  if (leadError) {
+    logSupabaseError(
+      'leads INSERT',
+      leadError
+    );
+
+    throw new Error(
+      'No se pudo guardar la información del proyecto en Supabase.'
+    );
   }
 
   // ----------------------------------------------------------
-  // 3. Guardar contacto SOLO con consentimiento explícito
+  // 3. Guardar contacto
+  //
+  // SOLO se ejecuta cuando existe consentimiento explícito.
   // ----------------------------------------------------------
   if (
-    input.consent &&
+    input.consent === true &&
     input.contact &&
-    (
-      input.contact.name ||
-      input.contact.whatsapp ||
-      input.contact.email
-    )
+    typeof input.contact === 'object'
   ) {
-    const { error: contactErr } = await supabase
-      .from('contactos')
-      .insert({
+    const name =
+      typeof input.contact.name === 'string'
+        ? input.contact.name.trim().slice(0, 100)
+        : '';
+
+    const whatsapp =
+      typeof input.contact.whatsapp === 'string'
+        ? input.contact.whatsapp.trim().slice(0, 100)
+        : '';
+
+    const email =
+      typeof input.contact.email === 'string'
+        ? input.contact.email.trim().slice(0, 100)
+        : '';
+
+    // No guardar una fila de contacto vacía.
+    if (name || whatsapp || email) {
+      const contactPayload = {
         conversation_id: conversationId,
-        nombre: input.contact.name || null,
-        correo: input.contact.email || null,
-        whatsapp: input.contact.whatsapp || null,
+        nombre: name || null,
+        correo: email || null,
+        whatsapp: whatsapp || null,
         fecha: nowIso,
         consentimiento: true,
         consentimiento_fecha: nowIso,
         version_politica: input.policyVersion || null
-      });
+      };
 
-    if (contactErr) {
-      throw new Error('No se pudo guardar el contacto en Supabase.');
+      const {
+        error: contactError
+      } = await supabase
+        .from('contactos')
+        .insert(contactPayload);
+
+      if (contactError) {
+        logSupabaseError(
+          'contactos INSERT',
+          contactError
+        );
+
+        throw new Error(
+          'No se pudo guardar el contacto en Supabase.'
+        );
+      }
     }
   }
 
+  // ----------------------------------------------------------
+  // Todo salió correctamente.
+  // ----------------------------------------------------------
   return {
     conversationId
   };
