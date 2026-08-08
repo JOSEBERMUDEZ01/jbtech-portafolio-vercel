@@ -28,6 +28,7 @@
 
 const { kv } = require('@vercel/kv');
 const aiRouter = require('./_lib/ai-router.js');
+const leadDetector = require('./_lib/lead-detector.js');
 
 // ------------------------------------------------------------
 // CONFIGURACIÓN — límites fáciles de ajustar
@@ -219,10 +220,34 @@ module.exports = async function handler(req, res) {
     // 6. Llamada al AI Router (Gemini). chat.js NO conoce
     //    detalles del proveedor: solo le pasa los mensajes ya
     //    validados y recibe { reply, model }.
+    //
+    //    En paralelo (no en secuencia, para no duplicar la
+    //    latencia) se ejecuta best-effort la evaluación interna
+    //    de leadScore/summary — solo cada 2 turnos a partir del
+    //    4to mensaje, para controlar costo y latencia. Un fallo
+    //    aquí NUNCA afecta la respuesta principal al usuario.
     // ------------------------------------------------------
+    // Se cuenta por turnos de usuario, no por longitud cruda del
+    // array: la petición siempre termina en un mensaje de usuario
+    // sin responder todavía, así que el array tiene longitud impar
+    // en cada turno — contar "user" evita que la condición nunca
+    // se cumpla.
+    const userTurnCount = messages.reduce(function (acc, m) { return m.role === 'user' ? acc + 1 : acc; }, 0);
+    const shouldEvaluateLead = userTurnCount >= 2 && userTurnCount % 2 === 0;
+
     let aiResult;
+    let leadResult = null;
     try {
-      aiResult = await aiRouter.chat(messages);
+      if (shouldEvaluateLead) {
+        const parallel = await Promise.all([
+          aiRouter.chat(messages),
+          leadDetector.evaluateLead(messages).catch(function () { return null; })
+        ]);
+        aiResult = parallel[0];
+        leadResult = parallel[1];
+      } else {
+        aiResult = await aiRouter.chat(messages);
+      }
     } catch (aiErr) {
       // Nunca se expone el mensaje real del error de Gemini
       // (podría incluir detalles internos). Solo se registra
@@ -231,13 +256,41 @@ module.exports = async function handler(req, res) {
       return fail(res, 502, 'El asistente no está disponible en este momento. Intenta nuevamente en unos segundos o escríbenos por WhatsApp.');
     }
 
+    // ------------------------------------------------------
+    // 7. Persistir/recuperar el leadScore actual (KV, namespace
+    //    "chat:lead:*", TTL igual al de la sesión). Nunca se
+    //    envía el "summary" completo al navegador aquí — solo
+    //    el número, para que el widget decida si mostrar el
+    //    flujo de consentimiento. El resumen se usa únicamente
+    //    server-side en /api/lead.js.
+    // ------------------------------------------------------
+    let currentLeadScore = null;
+    if (leadResult) {
+      currentLeadScore = leadResult.leadScore;
+      try {
+        await kv.set('chat:lead:' + sessionId, leadResult, { px: CONFIG.SESSION_WINDOW_MS });
+      } catch (kvErr) {
+        console.log('chat.js error guardando leadResult en KV:', kvErr && kvErr.message);
+      }
+    } else {
+      try {
+        const previous = await kv.get('chat:lead:' + sessionId);
+        if (previous && typeof previous.leadScore === 'number') {
+          currentLeadScore = previous.leadScore;
+        }
+      } catch (kvErr) {
+        currentLeadScore = null;
+      }
+    }
+
     return res.status(200).json({
       ok: true,
       reply: aiResult.reply,
       meta: {
         engineConnected: true,
         sessionId: sessionId,
-        messagesReceived: messages.length
+        messagesReceived: messages.length,
+        leadScore: currentLeadScore
       }
     });
   } catch (err) {
