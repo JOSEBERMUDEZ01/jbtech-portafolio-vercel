@@ -1,177 +1,196 @@
 // ============================================================
 // api/_lib/db.js
 //
-// Persistencia de conversaciones, proyectos y contactos
-// autorizados en Supabase.
+// Persistencia de conversaciones, leads y contactos en Supabase.
 //
 // IMPORTANTE:
-// - Este archivo SOLO se ejecuta en el backend de Vercel.
-// - SUPABASE_SECRET_KEY NUNCA debe aparecer en frontend.
-// - La Secret Key de Supabase tiene permisos elevados y
-//   permite escribir aunque las tablas tengan RLS activado.
+// - Este archivo SOLO se ejecuta en Vercel.
+// - SUPABASE_SECRET_KEY NUNCA debe llegar al navegador.
+// - La clave se utiliza únicamente mediante el header "apikey".
+// - No se utiliza Authorization: Bearer con la secret key.
 // ============================================================
 
-const { createClient } = require('@supabase/supabase-js');
+let cachedConfig = null;
 
-let cachedClient = null;
-
-function getClient() {
-  if (cachedClient) {
-    return cachedClient;
-  }
+function getConfig() {
+  if (cachedConfig) return cachedConfig;
 
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SECRET_KEY;
 
   if (!url || !key) {
     throw new Error(
-      'Supabase no está configurado. Verifica SUPABASE_URL y SUPABASE_SECRET_KEY.'
+      'Supabase no está configurado correctamente.'
     );
   }
 
-  cachedClient = createClient(url, key, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-      detectSessionInUrl: false
-    }
-  });
+  cachedConfig = {
+    url: url.replace(/\/+$/, ''),
+    key
+  };
 
-  return cachedClient;
+  return cachedConfig;
 }
 
+// ------------------------------------------------------------
+// Petición directa al Data API de Supabase.
+// Utilizamos exclusivamente "apikey" para la secret key.
+// ------------------------------------------------------------
+async function supabaseRequest(path, options = {}) {
+  const { url, key } = getConfig();
 
-// ============================================================
+  const headers = {
+    apikey: key,
+    'Content-Type': 'application/json',
+    Accept: 'application/json',
+    ...(options.headers || {})
+  };
+
+  const response = await fetch(
+    `${url}/rest/v1/${path}`,
+    {
+      ...options,
+      headers
+    }
+  );
+
+  const text = await response.text();
+
+  let data = null;
+
+  if (text) {
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = text;
+    }
+  }
+
+  if (!response.ok) {
+    console.error(
+      `SUPABASE ERROR ${response.status}:`,
+      data
+    );
+
+    throw new Error(
+      `Supabase respondió con HTTP ${response.status}.`
+    );
+  }
+
+  return data;
+}
+
+// ------------------------------------------------------------
 // Guarda:
-// 1. conversación
-// 2. información del proyecto
-// 3. contacto, únicamente cuando existe consentimiento
-// ============================================================
-
+//
+// 1. conversaciones
+// 2. leads
+// 3. contactos (solo con consentimiento)
+//
+// Si cualquiera de las operaciones falla, se lanza un error.
+// ------------------------------------------------------------
 async function saveLeadPackage(input) {
-  const supabase = getClient();
-
-  const nowIso = new Date().toISOString();
-
-  // ----------------------------------------------------------
-  // Validaciones mínimas
-  // ----------------------------------------------------------
-
   if (!input || typeof input !== 'object') {
     throw new Error('Datos de persistencia inválidos.');
   }
 
   if (!input.sessionId) {
-    throw new Error('Falta el identificador de sesión.');
+    throw new Error('Falta sessionId.');
   }
 
+  const nowIso = new Date().toISOString();
 
   // ==========================================================
-  // 1. GUARDAR CONVERSACIÓN
+  // 1. CONVERSACIÓN
   // ==========================================================
 
-  const conversationPayload = {
-    session_id: input.sessionId,
-    fecha: nowIso,
-    idioma: input.idioma || 'es',
-    estado: 'lead',
-    consentimiento: input.consent === true,
-    version_politica: input.policyVersion || null
-  };
+  const conversationRows = await supabaseRequest(
+    'conversaciones?select=id',
+    {
+      method: 'POST',
+      headers: {
+        Prefer: 'return=representation'
+      },
+      body: JSON.stringify([
+        {
+          session_id: input.sessionId,
+          fecha: nowIso,
+          idioma: input.idioma || 'es',
+          estado: 'lead',
+          consentimiento: input.consent === true,
+          version_politica: input.policyVersion || null
+        }
+      ])
+    }
+  );
 
-  const {
-    data: conversation,
-    error: conversationError
-  } = await supabase
-    .from('conversaciones')
-    .insert(conversationPayload)
-    .select('id')
-    .single();
-
-  if (conversationError || !conversation) {
-    console.error(
-      'SUPABASE conversaciones INSERT ERROR:',
-      conversationError
-    );
-
+  if (
+    !Array.isArray(conversationRows) ||
+    !conversationRows[0] ||
+    !conversationRows[0].id
+  ) {
     throw new Error(
-      'No se pudo guardar la conversación en Supabase.'
+      'Supabase no devolvió el ID de la conversación.'
     );
   }
 
-  const conversationId = conversation.id;
-
-
-  // ==========================================================
-  // 2. GUARDAR INFORMACIÓN DEL PROYECTO
-  // ==========================================================
-
-  const summary = (
-    input.summary &&
-    typeof input.summary === 'object'
-  )
-    ? input.summary
-    : {};
-
-  const leadPayload = {
-    conversation_id: conversationId,
-
-    proyecto:
-      typeof summary.proyecto === 'string'
-        ? summary.proyecto.slice(0, 500)
-        : null,
-
-    necesidad:
-      typeof summary.necesidad === 'string'
-        ? summary.necesidad.slice(0, 1000)
-        : null,
-
-    problema:
-      typeof summary.problema === 'string'
-        ? summary.problema.slice(0, 1000)
-        : null,
-
-    objetivo:
-      typeof summary.objetivo === 'string'
-        ? summary.objetivo.slice(0, 1000)
-        : null,
-
-    solucion_sugerida:
-      typeof summary.solucion_sugerida === 'string'
-        ? summary.solucion_sugerida.slice(0, 1500)
-        : null,
-
-    lead_score:
-      typeof input.leadScore === 'number'
-        ? Math.max(0, Math.min(100, Math.round(input.leadScore)))
-        : null,
-
-    estado: 'nuevo',
-    fecha: nowIso
-  };
-
-  const {
-    error: leadError
-  } = await supabase
-    .from('leads')
-    .insert(leadPayload);
-
-  if (leadError) {
-    console.error(
-      'SUPABASE leads INSERT ERROR:',
-      leadError
-    );
-
-    throw new Error(
-      'No se pudo guardar la información del proyecto en Supabase.'
-    );
-  }
-
+  const conversationId = conversationRows[0].id;
 
   // ==========================================================
-  // 3. GUARDAR CONTACTO
+  // 2. LEAD
+  // ==========================================================
+
+  const summary = input.summary || {};
+
+  const leadRows = await supabaseRequest(
+    'leads',
+    {
+      method: 'POST',
+      headers: {
+        Prefer: 'return=minimal'
+      },
+      body: JSON.stringify([
+        {
+          conversation_id: conversationId,
+
+          proyecto:
+            summary.proyecto ||
+            null,
+
+          necesidad:
+            summary.necesidad ||
+            null,
+
+          problema:
+            summary.problema ||
+            null,
+
+          objetivo:
+            summary.objetivo ||
+            null,
+
+          solucion_sugerida:
+            summary.solucion_sugerida ||
+            null,
+
+          lead_score:
+            typeof input.leadScore === 'number'
+              ? input.leadScore
+              : null,
+
+          estado: 'nuevo',
+          fecha: nowIso
+        }
+      ])
+    }
+  );
+
+  void leadRows;
+
+  // ==========================================================
+  // 3. CONTACTO
   //
-  // SOLO se guarda cuando el usuario autorizó expresamente.
+  // SOLO se guarda si existe consentimiento explícito.
   // ==========================================================
 
   if (
@@ -181,72 +200,55 @@ async function saveLeadPackage(input) {
   ) {
     const contact = input.contact;
 
-    const name =
-      typeof contact.name === 'string'
-        ? contact.name.trim().slice(0, 100)
-        : '';
+    const hasContactData =
+      contact.name ||
+      contact.whatsapp ||
+      contact.email;
 
-    const whatsapp =
-      typeof contact.whatsapp === 'string'
-        ? contact.whatsapp.trim().slice(0, 100)
-        : '';
+    if (hasContactData) {
+      await supabaseRequest(
+        'contactos',
+        {
+          method: 'POST',
+          headers: {
+            Prefer: 'return=minimal'
+          },
+          body: JSON.stringify([
+            {
+              conversation_id: conversationId,
 
-    const email =
-      typeof contact.email === 'string'
-        ? contact.email.trim().slice(0, 100)
-        : '';
+              nombre:
+                contact.name ||
+                null,
 
-    // Solo crear el registro si realmente existe
-    // información de contacto.
-    if (name || whatsapp || email) {
-      const contactPayload = {
-        conversation_id: conversationId,
+              correo:
+                contact.email ||
+                null,
 
-        nombre: name || null,
+              whatsapp:
+                contact.whatsapp ||
+                null,
 
-        correo: email || null,
+              fecha: nowIso,
 
-        whatsapp: whatsapp || null,
+              consentimiento: true,
 
-        fecha: nowIso,
+              consentimiento_fecha: nowIso,
 
-        consentimiento: true,
-
-        consentimiento_fecha: nowIso,
-
-        version_politica:
-          input.policyVersion || null
-      };
-
-      const {
-        error: contactError
-      } = await supabase
-        .from('contactos')
-        .insert(contactPayload);
-
-      if (contactError) {
-        console.error(
-          'SUPABASE contactos INSERT ERROR:',
-          contactError
-        );
-
-        throw new Error(
-          'No se pudo guardar la información de contacto.'
-        );
-      }
+              version_politica:
+                input.policyVersion ||
+                null
+            }
+          ])
+        }
+      );
     }
   }
-
-
-  // ==========================================================
-  // ÉXITO
-  // ==========================================================
 
   return {
     conversationId
   };
 }
-
 
 module.exports = {
   saveLeadPackage
