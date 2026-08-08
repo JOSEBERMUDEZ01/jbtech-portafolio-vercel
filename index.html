@@ -828,6 +828,14 @@ footer{ padding:50px 0 40px; }
 .jbai-typing span:nth-child(3){ animation-delay:.3s; }
 @keyframes jbaiBlink{ 0%,80%,100%{ opacity:.35; } 40%{ opacity:1; } }
 
+.jbai-inline-form{
+  display:flex; flex-direction:column; gap:8px; margin-top:2px;
+}
+.jbai-inline-form .jbai-input{ width:100%; }
+.jbai-inline-form .jbai-chip{
+  align-self:flex-start; border-color:var(--signal); color:var(--signal);
+}
+
 @media (max-width:560px){
   .jbai-launcher{ right:16px; bottom:84px; width:52px; height:52px; }
   .jbai-panel{
@@ -1780,7 +1788,7 @@ footer{ padding:50px 0 40px; }
         return { ok: false, message: msg };
       }
 
-      return { ok: true, reply: data.reply };
+      return { ok: true, reply: data.reply, leadScore: (data.meta && typeof data.meta.leadScore === 'number') ? data.meta.leadScore : null };
     } catch(networkErr){
       var isAbort = networkErr && networkErr.name === 'AbortError';
       return {
@@ -1812,12 +1820,157 @@ footer{ padding:50px 0 40px; }
     if(result.ok){
       addMessage(result.reply, 'bot');
       history.push({ role: 'assistant', content: result.reply });
+
+      if(!consentAsked && typeof result.leadScore === 'number' && result.leadScore >= LEAD_SCORE_THRESHOLD){
+        consentAsked = true;
+        setTimeout(showConsentPrompt, 350);
+      }
     } else {
       addMessage(result.message, 'bot');
       // No se agrega el error al historial que se reenvía a Gemini.
     }
 
     if(input) input.focus();
+  }
+
+  // ----------------------------------------------------------
+  // Flujo de consentimiento (solo se dispara cuando la propia
+  // conversación ya sugiere una oportunidad real, vía leadScore
+  // calculado en el servidor — nunca al iniciar la conversación).
+  // ----------------------------------------------------------
+  var LEAD_SCORE_THRESHOLD = 60;
+  var consentAsked = false;
+
+  function showConsentPrompt(){
+    addMessage(
+      'Para poder dar seguimiento a tu proyecto necesitamos algunos datos de contacto. Antes de continuar, ¿autorizas a JB TECH a tratar la información que compartas para atender tu solicitud y contactarte sobre el proyecto?',
+      'bot'
+    );
+
+    var row = document.createElement('div');
+    row.className = 'jbai-quick';
+    row.style.marginTop = '2px';
+
+    var linkBtn = document.createElement('a');
+    linkBtn.className = 'jbai-chip';
+    linkBtn.href = '/politica-privacidad.html';
+    linkBtn.target = '_blank';
+    linkBtn.rel = 'noopener';
+    linkBtn.textContent = '📄 Consultar política de privacidad';
+
+    var yesBtn = document.createElement('button');
+    yesBtn.type = 'button';
+    yesBtn.className = 'jbai-chip';
+    yesBtn.textContent = '✅ Autorizo el tratamiento de mis datos';
+
+    var noBtn = document.createElement('button');
+    noBtn.type = 'button';
+    noBtn.className = 'jbai-chip';
+    noBtn.textContent = '❌ No autorizo';
+
+    row.appendChild(linkBtn);
+    row.appendChild(yesBtn);
+    row.appendChild(noBtn);
+    body.appendChild(row);
+    scrollToBottom();
+
+    function cleanupRow(){
+      if(row.parentNode) row.parentNode.removeChild(row);
+    }
+
+    yesBtn.addEventListener('click', function(){
+      cleanupRow();
+      addMessage('✅ Autorizo el tratamiento de mis datos', 'user');
+      showContactForm();
+    });
+
+    noBtn.addEventListener('click', function(){
+      cleanupRow();
+      addMessage('❌ No autorizo', 'user');
+      addMessage('Está bien. Podemos continuar sin recopilar esos datos.', 'bot');
+    });
+  }
+
+  function showContactForm(){
+    var wrap = document.createElement('div');
+    wrap.className = 'jbai-inline-form';
+
+    var nameInput = document.createElement('input');
+    nameInput.className = 'jbai-input';
+    nameInput.type = 'text';
+    nameInput.placeholder = 'Tu nombre';
+    nameInput.maxLength = 100;
+
+    var contactInput = document.createElement('input');
+    contactInput.className = 'jbai-input';
+    contactInput.type = 'text';
+    contactInput.placeholder = 'WhatsApp o correo';
+    contactInput.maxLength = 100;
+
+    var submitBtn = document.createElement('button');
+    submitBtn.type = 'button';
+    submitBtn.className = 'jbai-chip';
+    submitBtn.textContent = 'Enviar mis datos';
+
+    wrap.appendChild(nameInput);
+    wrap.appendChild(contactInput);
+    wrap.appendChild(submitBtn);
+    body.appendChild(wrap);
+    scrollToBottom();
+    nameInput.focus();
+
+    submitBtn.addEventListener('click', async function(){
+      var name = (nameInput.value || '').trim();
+      var contactValue = (contactInput.value || '').trim();
+
+      if(!name || !contactValue){
+        addMessage('Necesito al menos tu nombre y un WhatsApp o correo para continuar.', 'bot');
+        return;
+      }
+
+      submitBtn.disabled = true;
+      nameInput.disabled = true;
+      contactInput.disabled = true;
+
+      var isEmail = contactValue.indexOf('@') !== -1;
+      var contact = { name: name };
+      if(isEmail) contact.email = contactValue; else contact.whatsapp = contactValue;
+
+      var typing = showTyping();
+      var leadResult = await sendLead(contact);
+      removeTyping(typing);
+
+      if(wrap.parentNode) wrap.parentNode.removeChild(wrap);
+      addMessage(name + ' — ' + contactValue, 'user');
+
+      if(leadResult.ok && leadResult.stored){
+        if(leadResult.notified && (leadResult.notified.email || leadResult.notified.whatsapp)){
+          addMessage('¡Listo! Ya quedó registrada tu información y avisamos a nuestro equipo. Te contactaremos pronto.', 'bot');
+        } else {
+          addMessage('Tu información quedó guardada, aunque tuvimos un problema notificando a nuestro equipo en este momento. Aun así la revisaremos pronto.', 'bot');
+        }
+      } else {
+        addMessage('Tuvimos un problema guardando tu información. ¿Puedes intentar de nuevo en un momento, o prefieres escribirnos directo por WhatsApp?', 'bot');
+      }
+    });
+  }
+
+  async function sendLead(contact){
+    try {
+      var response = await fetch('/api/lead', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId: sessionId, consent: true, contact: contact })
+      });
+      var data = null;
+      try { data = await response.json(); } catch(e){ data = null; }
+      if(!response.ok || !data || data.ok !== true){
+        return { ok: false, stored: false, notified: { email: false, whatsapp: false } };
+      }
+      return data;
+    } catch(err){
+      return { ok: false, stored: false, notified: { email: false, whatsapp: false } };
+    }
   }
 
   if(quick){
