@@ -108,6 +108,80 @@ button{
   display:flex; justify-content:center; gap:14px;
 }
 .save-bar button{ min-width:160px; }
+
+/* ============================================================
+   PANEL JB TECH AI — Fase 11/12 (leads/contactos). Reutiliza
+   exactamente los mismos tokens de color/tipografía/tarjeta que
+   el resto de admin.html; no se introduce ninguna identidad
+   visual nueva.
+   ============================================================ */
+.tabs{ display:flex; gap:8px; margin-bottom:24px; flex-wrap:wrap; }
+.tab-btn{
+  background:var(--panel-2); border:1px solid var(--line-strong); color:var(--muted);
+  padding:9px 16px; border-radius:999px; font-size:.85rem; font-weight:600;
+}
+.tab-btn.active{ background:var(--signal-soft); border-color:var(--signal); color:var(--paper); }
+.tab-btn:hover{ border-color:var(--signal); }
+
+.kpi-grid{
+  display:grid; grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));
+  gap:12px; margin-bottom:24px;
+}
+.kpi-card{
+  background:var(--panel); border:1px solid var(--line-strong); border-radius:var(--radius);
+  padding:16px 18px;
+}
+.kpi-card .n{ font-family:var(--font-mono); font-size:1.7rem; font-weight:700; color:var(--paper); }
+.kpi-card .l{ font-size:.78rem; color:var(--muted); margin-top:4px; }
+.kpi-card.total .n{ color:var(--signal); }
+
+.filters{
+  display:flex; gap:10px; flex-wrap:wrap; margin-bottom:18px; align-items:flex-end;
+}
+.filters .field{ flex:1; min-width:140px; }
+.filters label{ margin-bottom:5px; }
+.filters input, .filters select{ margin-bottom:0; }
+
+.data-row{
+  border:1px solid var(--line); border-radius:8px; padding:14px 16px; margin-bottom:10px;
+  background:var(--panel-2); cursor:pointer; transition:border-color .15s ease;
+}
+.data-row:hover{ border-color:var(--signal); }
+.data-row .rt{ display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:4px; }
+.data-row .rt .proj{ font-weight:700; font-size:.95rem; }
+.data-row .rt .date{ font-family:var(--font-mono); font-size:.72rem; color:var(--muted); flex-shrink:0; }
+.data-row .rb{ font-size:.85rem; color:var(--muted); }
+
+.badge{
+  display:inline-block; font-family:var(--font-mono); font-size:.68rem; letter-spacing:.03em;
+  padding:3px 9px; border-radius:999px; text-transform:uppercase; font-weight:600;
+}
+.badge.nuevo{ background:rgba(90,140,220,.18); color:#8ab0f0; }
+.badge.en_seguimiento{ background:rgba(210,170,50,.18); color:#e0c060; }
+.badge.contactado{ background:rgba(90,180,120,.18); color:#7fcf9a; }
+.badge.cerrado{ background:rgba(150,150,150,.18); color:#b5b0b3; }
+.badge.descartado{ background:rgba(200,60,60,.15); color:#e07a7a; }
+
+.detail-panel{
+  border:1px solid var(--signal); border-radius:8px; padding:16px; margin:-4px 0 12px;
+  background:var(--panel);
+}
+.detail-panel .drow{ margin-bottom:10px; }
+.detail-panel .drow b{ display:block; font-family:var(--font-mono); font-size:.68rem; letter-spacing:.05em;
+  text-transform:uppercase; color:var(--muted); margin-bottom:3px; }
+.detail-panel select{ margin-bottom:0; width:auto; }
+.detail-panel .contact-box{
+  background:var(--panel-2); border:1px solid var(--line); border-radius:8px; padding:12px 14px; margin-top:10px;
+}
+.empty-msg{ color:var(--muted); font-size:.9rem; padding:24px; text-align:center; }
+.load-msg{ color:var(--muted); font-size:.85rem; padding:10px 0; }
+.pager{ display:flex; justify-content:center; gap:10px; margin-top:16px; }
+.pager button:disabled{ opacity:.4; cursor:default; }
+
+@media (max-width:560px){
+  .filters .field{ min-width:100%; }
+  .data-row .rt{ flex-direction:column; align-items:flex-start; gap:4px; }
+}
 </style>
 </head>
 <body>
@@ -128,12 +202,26 @@ button{
   <div class="top-bar">
     <div>
       <span class="eyebrow">JB Tech · Panel admin</span>
-      <h1>Contenido del sitio</h1>
+      <h1 id="panelTitle">Contenido del sitio</h1>
     </div>
     <button class="btn-ghost" onclick="logout()">Salir</button>
   </div>
 
+  <div class="tabs">
+    <button type="button" class="tab-btn active" id="tabBtnContenido" onclick="switchTab('contenido')">Contenido del sitio</button>
+    <button type="button" class="tab-btn" id="tabBtnDashboard" onclick="switchTab('dashboard')">Dashboard</button>
+    <button type="button" class="tab-btn" id="tabBtnSolicitudes" onclick="switchTab('solicitudes')">Solicitudes</button>
+    <button type="button" class="tab-btn" id="tabBtnContactos" onclick="switchTab('contactos')">Contactos</button>
+  </div>
+
   <div class="status-msg" id="statusMsg"></div>
+
+  <!-- ============================================================
+       PESTAÑA: Contenido del sitio — EXACTAMENTE el editor que ya
+       existía, sin ningún cambio funcional. Solo se envolvió en
+       este div para poder mostrarla/ocultarla con las pestañas.
+       ============================================================ -->
+  <div id="tabContenido">
 
   <div class="card">
     <h2>Inicio (hero)</h2>
@@ -178,6 +266,85 @@ button{
   </div>
 
   <div style="height:70px;"></div>
+  </div>
+  <!-- fin #tabContenido -->
+
+  <!-- ============================================================
+       PESTAÑA: Dashboard (Fase 11) — conteos reales, sin datos
+       inventados. Se piden a /api/admin/dashboard.
+       ============================================================ -->
+  <div id="tabDashboard" style="display:none;">
+    <div class="card">
+      <h2>Resumen</h2>
+      <div id="dashboardKpis" class="kpi-grid">
+        <div class="load-msg">Cargando…</div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Solicitudes recientes</h2>
+      <div id="dashboardRecent"><div class="load-msg">Cargando…</div></div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       PESTAÑA: Solicitudes (Fase 11) — búsqueda, filtros, detalle,
+       cambio de estado. Se piden a /api/admin/leads.
+       ============================================================ -->
+  <div id="tabSolicitudes" style="display:none;">
+    <div class="card">
+      <div class="filters">
+        <div class="field">
+          <label>Buscar</label>
+          <input type="text" id="leadsSearch" placeholder="Proyecto o necesidad…">
+        </div>
+        <div class="field">
+          <label>Estado</label>
+          <select id="leadsEstadoFilter">
+            <option value="">Todos</option>
+            <option value="nuevo">Nuevo</option>
+            <option value="en_seguimiento">En seguimiento</option>
+            <option value="contactado">Contactado</option>
+            <option value="cerrado">Cerrado</option>
+            <option value="descartado">Descartado</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Desde</label>
+          <input type="date" id="leadsDateFrom">
+        </div>
+        <div class="field">
+          <label>Hasta</label>
+          <input type="date" id="leadsDateTo">
+        </div>
+      </div>
+      <div id="leadsList"><div class="load-msg">Cargando…</div></div>
+      <div class="pager" id="leadsPager" style="display:none;">
+        <button type="button" class="btn-ghost" id="leadsPrevBtn" onclick="changeLeadsPage(-1)">← Anterior</button>
+        <button type="button" class="btn-ghost" id="leadsNextBtn" onclick="changeLeadsPage(1)">Siguiente →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       PESTAÑA: Contactos (Fase 11) — solo quienes autorizaron.
+       Se piden a /api/admin/contacts.
+       ============================================================ -->
+  <div id="tabContactos" style="display:none;">
+    <div class="card">
+      <div class="filters">
+        <div class="field">
+          <label>Buscar</label>
+          <input type="text" id="contactsSearch" placeholder="Nombre, correo o WhatsApp…">
+        </div>
+      </div>
+      <div id="contactsList"><div class="load-msg">Cargando…</div></div>
+      <div class="pager" id="contactsPager" style="display:none;">
+        <button type="button" class="btn-ghost" id="contactsPrevBtn" onclick="changeContactsPage(-1)">← Anterior</button>
+        <button type="button" class="btn-ghost" id="contactsNextBtn" onclick="changeContactsPage(1)">Siguiente →</button>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <div class="save-bar" id="saveBar" style="display:none;">
@@ -226,6 +393,18 @@ async function doLogin(){
     currentContent = content;
     populateForm(content);
 
+    // Establece, además, la sesión segura del panel de leads
+    // (Fase 11/12). Es best-effort: si falla, las pestañas de
+    // Dashboard/Solicitudes/Contactos simplemente mostrarán su
+    // propio mensaje de "no autorizado" al intentar cargar datos.
+    try {
+      await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: user, password: pass })
+      });
+    } catch (e) { /* silencioso a propósito, ver comentario arriba */ }
+
     document.getElementById('loginScreen').style.display = 'none';
     document.getElementById('panel').style.display = 'block';
     document.getElementById('saveBar').style.display = 'flex';
@@ -238,6 +417,7 @@ async function doLogin(){
 function logout(){
   sessionStorage.removeItem('jbAdminUser');
   sessionStorage.removeItem('jbAdminPass');
+  fetch('/api/admin/logout', { method: 'POST' }).catch(function(){});
   location.reload();
 }
 
@@ -400,7 +580,317 @@ async function saveContent(){
   }
 }
 
-// Auto-login si ya había una sesión en este navegador
+// ============================================================
+// PANEL JB TECH AI — Fase 11/12 (leads/contactos)
+// ============================================================
+
+var ESTADO_LABELS = {
+  nuevo: 'Nuevo', en_seguimiento: 'En seguimiento', contactado: 'Contactado',
+  cerrado: 'Cerrado', descartado: 'Descartado'
+};
+var PANEL_TITLES = {
+  contenido: 'Contenido del sitio', dashboard: 'Dashboard',
+  solicitudes: 'Solicitudes', contactos: 'Contactos'
+};
+
+var tabLoaded = { dashboard: false, solicitudes: false, contactos: false };
+var leadsState = { page: 1, total: 0, openDetailId: null };
+var contactsState = { page: 1, total: 0 };
+var searchDebounceTimer = null;
+
+function switchTab(name){
+  ['contenido','dashboard','solicitudes','contactos'].forEach(function(t){
+    document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1)).style.display = (t === name) ? 'block' : 'none';
+    document.getElementById('tabBtn' + t.charAt(0).toUpperCase() + t.slice(1)).classList.toggle('active', t === name);
+  });
+  document.getElementById('panelTitle').textContent = PANEL_TITLES[name];
+  document.getElementById('saveBar').style.display = (name === 'contenido') ? 'flex' : 'none';
+
+  if(name === 'dashboard' && !tabLoaded.dashboard){ tabLoaded.dashboard = true; loadDashboard(); }
+  if(name === 'solicitudes' && !tabLoaded.solicitudes){ tabLoaded.solicitudes = true; loadLeads(); }
+  if(name === 'contactos' && !tabLoaded.contactos){ tabLoaded.contactos = true; loadContacts(); }
+}
+
+function formatFecha(iso){
+  if(!iso) return 'Sin fecha';
+  try{
+    var d = new Date(iso);
+    return d.toLocaleDateString('es-CO', { year:'numeric', month:'short', day:'numeric' });
+  } catch(e){ return iso; }
+}
+
+function estadoBadge(estado){
+  var label = ESTADO_LABELS[estado] || 'Sin estado';
+  return '<span class="badge ' + escAttr(estado || '') + '">' + escHtml(label) + '</span>';
+}
+
+async function adminFetch(url){
+  var res = await fetch(url, { credentials: 'same-origin' });
+  if(res.status === 401){
+    return { unauthorized: true };
+  }
+  var data = null;
+  try { data = await res.json(); } catch(e){ data = null; }
+  if(!res.ok || !data || data.ok !== true){
+    return { error: (data && data.message) || 'No pudimos cargar la información.' };
+  }
+  return { data: data.data };
+}
+
+function unauthorizedMsg(){
+  return '<div class="empty-msg">Tu sesión del panel no está activa todavía.<br>Cierra sesión y vuelve a entrar para habilitar esta sección.</div>';
+}
+
+// ---------------- DASHBOARD ----------------
+
+async function loadDashboard(){
+  var kpiEl = document.getElementById('dashboardKpis');
+  var recentEl = document.getElementById('dashboardRecent');
+  kpiEl.innerHTML = '<div class="load-msg">Cargando…</div>';
+  recentEl.innerHTML = '';
+
+  var result = await adminFetch('/api/admin/dashboard');
+  if(result.unauthorized){ kpiEl.innerHTML = unauthorizedMsg(); return; }
+  if(result.error){ kpiEl.innerHTML = '<div class="empty-msg">' + escHtml(result.error) + '</div>'; return; }
+
+  var d = result.data;
+  var estados = ['nuevo','en_seguimiento','contactado','cerrado','descartado'];
+  var html = '';
+  estados.forEach(function(e){
+    html += '<div class="kpi-card"><div class="n">' + (d.counts[e] || 0) + '</div><div class="l">' + ESTADO_LABELS[e] + '</div></div>';
+  });
+  html += '<div class="kpi-card total"><div class="n">' + d.totalContactos + '</div><div class="l">Contactos totales</div></div>';
+  kpiEl.innerHTML = html;
+
+  if(!d.recent || d.recent.length === 0){
+    recentEl.innerHTML = '<div class="empty-msg">No hay solicitudes todavía.</div>';
+    return;
+  }
+  recentEl.innerHTML = d.recent.map(function(r){
+    return '<div class="data-row" onclick="switchTab(\'solicitudes\')">' +
+      '<div class="rt"><span class="proj">' + escHtml(r.proyecto || 'Sin nombre de proyecto') + '</span>' +
+      '<span class="date">' + formatFecha(r.fecha) + '</span></div>' +
+      '<div class="rb">' + escHtml(r.necesidad || 'No disponible') + ' &middot; ' + estadoBadge(r.estado) + '</div>' +
+      '</div>';
+  }).join('');
+}
+
+// ---------------- SOLICITUDES ----------------
+
+function currentLeadsFilters(){
+  return {
+    search: document.getElementById('leadsSearch').value.trim(),
+    estado: document.getElementById('leadsEstadoFilter').value,
+    dateFrom: document.getElementById('leadsDateFrom').value,
+    dateTo: document.getElementById('leadsDateTo').value
+  };
+}
+
+async function loadLeads(){
+  var listEl = document.getElementById('leadsList');
+  var pagerEl = document.getElementById('leadsPager');
+  listEl.innerHTML = '<div class="load-msg">Cargando…</div>';
+  pagerEl.style.display = 'none';
+  leadsState.openDetailId = null;
+
+  var f = currentLeadsFilters();
+  var qs = new URLSearchParams();
+  if(f.search) qs.set('search', f.search);
+  if(f.estado) qs.set('estado', f.estado);
+  if(f.dateFrom) qs.set('dateFrom', f.dateFrom);
+  if(f.dateTo) qs.set('dateTo', f.dateTo);
+  qs.set('page', leadsState.page);
+
+  var result = await adminFetch('/api/admin/leads?' + qs.toString());
+  if(result.unauthorized){ listEl.innerHTML = unauthorizedMsg(); return; }
+  if(result.error){ listEl.innerHTML = '<div class="empty-msg">' + escHtml(result.error) + '</div>'; return; }
+
+  var items = result.data.items || [];
+  leadsState.total = result.data.total || 0;
+
+  if(items.length === 0){
+    listEl.innerHTML = '<div class="empty-msg">No hay solicitudes todavía.</div>';
+    return;
+  }
+
+  listEl.innerHTML = items.map(function(it){
+    return '<div class="data-row" id="leadRow-' + it.id + '" onclick="toggleLeadDetail(' + it.id + ', ' + it.conversation_id + ')">' +
+      '<div class="rt"><span class="proj">' + escHtml(it.proyecto || 'Sin nombre de proyecto') + '</span>' +
+      '<span class="date">' + formatFecha(it.fecha) + '</span></div>' +
+      '<div class="rb">' + escHtml(it.necesidad || 'No disponible') + ' &middot; ' + estadoBadge(it.estado) + '</div>' +
+      '<div id="leadDetailSlot-' + it.id + '"></div>' +
+      '</div>';
+  }).join('');
+
+  var totalPages = Math.max(1, Math.ceil(leadsState.total / 20));
+  document.getElementById('leadsPrevBtn').disabled = (leadsState.page <= 1);
+  document.getElementById('leadsNextBtn').disabled = (leadsState.page >= totalPages);
+  pagerEl.style.display = (leadsState.total > 20) ? 'flex' : 'none';
+}
+
+function changeLeadsPage(delta){
+  var totalPages = Math.max(1, Math.ceil(leadsState.total / 20));
+  var next = leadsState.page + delta;
+  if(next < 1 || next > totalPages) return;
+  leadsState.page = next;
+  loadLeads();
+}
+
+async function toggleLeadDetail(leadId, conversationId){
+  var slot = document.getElementById('leadDetailSlot-' + leadId);
+  if(!slot) return;
+
+  // Evita que el clic en el select/botones internos vuelva a cerrar el detalle.
+  if(event && event.target && (event.target.tagName === 'SELECT' || event.target.tagName === 'OPTION')) return;
+
+  if(leadsState.openDetailId === leadId){
+    slot.innerHTML = '';
+    leadsState.openDetailId = null;
+    return;
+  }
+
+  var prevOpen = leadsState.openDetailId;
+  if(prevOpen){
+    var prevSlot = document.getElementById('leadDetailSlot-' + prevOpen);
+    if(prevSlot) prevSlot.innerHTML = '';
+  }
+  leadsState.openDetailId = leadId;
+  slot.innerHTML = '<div class="load-msg">Cargando detalle…</div>';
+
+  var result = await adminFetch('/api/admin/leads?id=' + encodeURIComponent(conversationId));
+  if(result.unauthorized){ slot.innerHTML = unauthorizedMsg(); return; }
+  if(result.error){ slot.innerHTML = '<div class="empty-msg">' + escHtml(result.error) + '</div>'; return; }
+
+  var d = result.data;
+  var lead = d.lead || {};
+  var conv = d.conversacion || {};
+  var contacto = d.contacto;
+
+  var html = '<div class="detail-panel" onclick="event.stopPropagation()">';
+  html += '<div class="drow"><b>Problema</b>' + escHtml(lead.problema || 'No disponible') + '</div>';
+  html += '<div class="drow"><b>Objetivo</b>' + escHtml(lead.objetivo || 'No disponible') + '</div>';
+  html += '<div class="drow"><b>Solución sugerida</b>' + escHtml(lead.solucion_sugerida || 'No disponible') + '</div>';
+  html += '<div class="drow"><b>Valoración</b>' + (typeof lead.lead_score === 'number' ? lead.lead_score + ' / 100' : 'No disponible') + '</div>';
+  html += '<div class="drow"><b>Consentimiento</b>' + (conv.consentimiento ? 'Autorizado' : 'No autorizado') +
+    (conv.version_politica ? ' &middot; versión ' + escHtml(conv.version_politica) : '') + '</div>';
+
+  if(contacto){
+    html += '<div class="contact-box"><div class="drow" style="margin-bottom:6px;"><b>Contacto</b>' + escHtml(contacto.nombre || 'Sin nombre') + '</div>';
+    if(contacto.whatsapp) html += '<div class="drow"><b>WhatsApp</b>' + escHtml(contacto.whatsapp) + '</div>';
+    if(contacto.correo) html += '<div class="drow"><b>Correo</b>' + escHtml(contacto.correo) + '</div>';
+    html += '</div>';
+  } else {
+    html += '<div class="drow"><b>Contacto</b>No disponible (sin autorización)</div>';
+  }
+
+  html += '<div class="drow"><b>Cambiar estado</b>' +
+    '<select onchange="changeLeadStatus(' + leadId + ', this)" onclick="event.stopPropagation()">' +
+    Object.keys(ESTADO_LABELS).map(function(k){
+      return '<option value="' + k + '"' + (k === lead.estado ? ' selected' : '') + '>' + ESTADO_LABELS[k] + '</option>';
+    }).join('') + '</select></div>';
+
+  html += '</div>';
+  slot.innerHTML = html;
+}
+
+async function changeLeadStatus(leadId, selectEl){
+  var nuevoEstado = selectEl.value;
+  selectEl.disabled = true;
+  try{
+    var res = await fetch('/api/admin/leads', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({ id: leadId, estado: nuevoEstado })
+    });
+    var data = null;
+    try { data = await res.json(); } catch(e){}
+    if(!res.ok || !data || data.ok !== true){
+      showStatus((data && data.message) || 'No se pudo actualizar el estado.', true);
+      selectEl.disabled = false;
+      return;
+    }
+    showStatus('Estado actualizado.', false);
+    loadLeads();
+  } catch(err){
+    showStatus('No se pudo actualizar el estado.', true);
+    selectEl.disabled = false;
+  }
+}
+
+// ---------------- CONTACTOS ----------------
+
+async function loadContacts(){
+  var listEl = document.getElementById('contactsList');
+  var pagerEl = document.getElementById('contactsPager');
+  listEl.innerHTML = '<div class="load-msg">Cargando…</div>';
+  pagerEl.style.display = 'none';
+
+  var search = document.getElementById('contactsSearch').value.trim();
+  var qs = new URLSearchParams();
+  if(search) qs.set('search', search);
+  qs.set('page', contactsState.page);
+
+  var result = await adminFetch('/api/admin/contacts?' + qs.toString());
+  if(result.unauthorized){ listEl.innerHTML = unauthorizedMsg(); return; }
+  if(result.error){ listEl.innerHTML = '<div class="empty-msg">' + escHtml(result.error) + '</div>'; return; }
+
+  var items = result.data.items || [];
+  contactsState.total = result.data.total || 0;
+
+  if(items.length === 0){
+    listEl.innerHTML = '<div class="empty-msg">No hay contactos registrados.</div>';
+    return;
+  }
+
+  listEl.innerHTML = items.map(function(c){
+    return '<div class="data-row" style="cursor:default;">' +
+      '<div class="rt"><span class="proj">' + escHtml(c.nombre || 'Sin nombre') + '</span>' +
+      '<span class="date">' + formatFecha(c.fecha) + '</span></div>' +
+      '<div class="rb">' +
+      (c.whatsapp ? 'WhatsApp: ' + escHtml(c.whatsapp) + ' &middot; ' : '') +
+      (c.correo ? 'Correo: ' + escHtml(c.correo) + ' &middot; ' : '') +
+      'Proyecto: ' + escHtml(c.proyecto || 'No disponible') +
+      (c.estado ? ' &middot; ' + estadoBadge(c.estado) : '') +
+      '</div></div>';
+  }).join('');
+
+  var totalPages = Math.max(1, Math.ceil(contactsState.total / 20));
+  document.getElementById('contactsPrevBtn').disabled = (contactsState.page <= 1);
+  document.getElementById('contactsNextBtn').disabled = (contactsState.page >= totalPages);
+  pagerEl.style.display = (contactsState.total > 20) ? 'flex' : 'none';
+}
+
+function changeContactsPage(delta){
+  var totalPages = Math.max(1, Math.ceil(contactsState.total / 20));
+  var next = contactsState.page + delta;
+  if(next < 1 || next > totalPages) return;
+  contactsState.page = next;
+  loadContacts();
+}
+
+// ---------------- Filtros con debounce ----------------
+
+function debouncedReload(fn){
+  clearTimeout(searchDebounceTimer);
+  searchDebounceTimer = setTimeout(fn, 350);
+}
+
+(function wireFilters(){
+  var leadsSearch = document.getElementById('leadsSearch');
+  var leadsEstado = document.getElementById('leadsEstadoFilter');
+  var leadsFrom = document.getElementById('leadsDateFrom');
+  var leadsTo = document.getElementById('leadsDateTo');
+  var contactsSearch = document.getElementById('contactsSearch');
+
+  leadsSearch.addEventListener('input', function(){ debouncedReload(function(){ leadsState.page = 1; loadLeads(); }); });
+  leadsEstado.addEventListener('change', function(){ leadsState.page = 1; loadLeads(); });
+  leadsFrom.addEventListener('change', function(){ leadsState.page = 1; loadLeads(); });
+  leadsTo.addEventListener('change', function(){ leadsState.page = 1; loadLeads(); });
+  contactsSearch.addEventListener('input', function(){ debouncedReload(function(){ contactsState.page = 1; loadContacts(); }); });
+})();
+
+
 (function(){
   var savedUser = sessionStorage.getItem('jbAdminUser');
   var savedPass = sessionStorage.getItem('jbAdminPass');
