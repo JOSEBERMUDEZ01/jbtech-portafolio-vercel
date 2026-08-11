@@ -2019,100 +2019,60 @@ async function submitUserMessage(text){
    * Agregamos SIEMPRE el mensaje actual
    * antes de preparar la petición.
    */
-  history.push({
-    role: 'user',
-    content: text
-  });
+ /*
+ * ----------------------------------------------------------
+ * SINCRONIZACIÓN DEL ESTADO POST-LEAD
+ * ----------------------------------------------------------
+ *
+ * La interfaz muestra dos mensajes después de registrar
+ * correctamente el lead:
+ *
+ * 1. Confirmación del registro.
+ * 2. Pregunta real para continuar la conversación.
+ *
+ * Ambos deben quedar en history porque Gemini solo conoce
+ * lo que recibe mediante este historial.
+ *
+ * NO se agregan nombre, teléfono ni correo.
+ */
 
-  /*
-   * Creamos una copia independiente del historial.
-   * Así la petición no depende de que otra parte
-   * del widget modifique history mientras espera Gemini.
-   */
-  var messagesToSend =
-    history
-      .slice(-MAX_HISTORY_TO_SEND)
-      .map(function(message){
-        return {
-          role: message.role,
-          content: message.content
-        };
-      });
+// Mismo mensaje que mostramos visualmente.
+history.push({
+  role: 'assistant',
+  content: confirmation
+});
 
-  /*
-   * Protección adicional.
-   */
-  if(
-    messagesToSend.length === 0
-  ){
+// Esperamos un momento para que la confirmación aparezca
+// antes de mostrar la pregunta de continuación.
+setTimeout(
+  function(){
+
+    var continuationQuestion =
+      '¿Quieres agregar alguna función, estilo visual, referencia, integración o detalle adicional a tu proyecto?';
+
+    // Mostrar la pregunta al usuario.
     addMessage(
-      'No pude preparar el mensaje para el asistente. Inténtalo nuevamente.',
+      continuationQuestion,
       'bot'
     );
 
-    return;
-  }
-
-  setSendingState(true);
-
-  var typing =
-    showTyping();
-
-  var result =
-    await askBackend(
-      messagesToSend
-    );
-
-  removeTyping(
-    typing
-  );
-
-  setSendingState(false);
-
-  if(result.ok){
-
-    addMessage(
-      result.reply,
-      'bot'
-    );
-
+    // MUY IMPORTANTE:
+    // también agregamos esta pregunta al historial.
+    // Así, si el usuario responde "sí", "claro",
+    // "me gustaría agregar más cosas", etc.,
+    // Gemini sabrá exactamente a qué está respondiendo.
     history.push({
       role: 'assistant',
-      content: result.reply
+      content: continuationQuestion
     });
 
-    /*
-     * El consentimiento aparece solamente
-     * cuando el detector considera que existe
-     * una oportunidad real.
-     */
-    if(
-      !consentAsked &&
-      !leadCaptured &&
-      typeof result.leadScore === 'number' &&
-      result.leadScore >= LEAD_SCORE_THRESHOLD
-    ){
-
-      consentAsked = true;
-
-      setTimeout(
-        showConsentPrompt,
-        350
-      );
+    if(input){
+      input.focus();
     }
 
-  } else {
-
-    addMessage(
-      result.message,
-      'bot'
-    );
-  }
-
-  if(input){
-    input.focus();
-  }
-}
+  },
+  500
+);
 
   /*
    * ------------------------------------------------------------
