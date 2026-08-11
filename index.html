@@ -1606,13 +1606,13 @@ footer{ padding:50px 0 40px; }
 </script>
 
 <!-- ============================================================
-     JB TECH AI — LÓGICA DE CONEXIÓN REAL (FASE 4)
-     Conecta el widget con el backend real: /api/chat -> AI Router
-     -> Gemini. Ya no hay respuestas simuladas localmente.
-     Sin conocimiento de José, sin detección de leads todavía
-     (eso llega en fases posteriores). Este bloque SOLO reemplaza
-     la lógica de envío/recepción; el HTML y el CSS del widget no
-     se tocaron.
+     JB TECH AI — LÓGICA DE CONEXIÓN REAL
+     Versión mejorada:
+     - Conversación continua después del lead
+     - País + indicativo internacional
+     - WhatsApp y correo separados
+     - UX profesional
+     - Sin exponer información sensible
      ============================================================ -->
 <script>
 (function(){
@@ -1626,13 +1626,8 @@ footer{ padding:50px 0 40px; }
   var input    = document.getElementById('jbaiInput');
   var sendBtn  = document.getElementById('jbaiSend');
 
-  if(!launcher || !panel) return;
+  if(!launcher || !panel || !body) return;
 
-  // ----------------------------------------------------------
-  // Endpoint real. En Vercel, api/chat.js se sirve en /api/chat
-  // (sin extensión .js) — es la única ruta a la que llama el
-  // navegador. Nunca se llama a Gemini directamente desde aquí.
-  // ----------------------------------------------------------
   var CHAT_ENDPOINT = '/api/chat';
   var REQUEST_TIMEOUT_MS = 25000;
 
@@ -1640,12 +1635,40 @@ footer{ padding:50px 0 40px; }
   var isSending = false;
   var conversationStarted = false;
 
-  // Historial de la conversación actual, solo en memoria del
-  // navegador (se pierde al recargar la página; no hay backend
-  // de memoria todavía). Se limita antes de enviar para no
-  // exceder lo que acepta /api/chat.
+  /*
+   * Historial enviado a Gemini.
+   * No incluimos los datos personales del formulario.
+   */
   var history = [];
   var MAX_HISTORY_TO_SEND = 20;
+
+  /*
+   * Estados del flujo comercial.
+   */
+  var consentAsked = false;
+  var leadCaptured = false;
+  var contactFormOpen = false;
+
+  var LEAD_SCORE_THRESHOLD = 60;
+
+  /*
+   * Países prioritarios para JB TECH.
+   * Colombia queda primero porque es el mercado principal.
+   */
+  var COUNTRIES = [
+    { code: 'CO', name: 'Colombia', dial: '+57', flag: '🇨🇴', digits: 10 },
+    { code: 'MX', name: 'México', dial: '+52', flag: '🇲🇽', digits: 10 },
+    { code: 'US', name: 'Estados Unidos', dial: '+1', flag: '🇺🇸', digits: 10 },
+    { code: 'CA', name: 'Canadá', dial: '+1', flag: '🇨🇦', digits: 10 },
+    { code: 'ES', name: 'España', dial: '+34', flag: '🇪🇸', digits: 9 },
+    { code: 'AR', name: 'Argentina', dial: '+54', flag: '🇦🇷', digits: 10 },
+    { code: 'CL', name: 'Chile', dial: '+56', flag: '🇨🇱', digits: 9 },
+    { code: 'PE', name: 'Perú', dial: '+51', flag: '🇵🇪', digits: 9 },
+    { code: 'EC', name: 'Ecuador', dial: '+593', flag: '🇪🇨', digits: 9 },
+    { code: 'PA', name: 'Panamá', dial: '+507', flag: '🇵🇦', digits: 8 },
+    { code: 'CR', name: 'Costa Rica', dial: '+506', flag: '🇨🇷', digits: 8 },
+    { code: 'BR', name: 'Brasil', dial: '+55', flag: '🇧🇷', digits: 10 }
+  ];
 
   var QUICK_LABELS = {
     idea: '💡 Tengo una idea',
@@ -1658,61 +1681,123 @@ footer{ padding:50px 0 40px; }
     jose: '👨‍💻 Quiero conocer a José'
   };
 
-  // ----------------------------------------------------------
-  // sessionId estable para esta sesión del navegador (por pestaña).
-  // No es información personal ni credencial de autenticación,
-  // solo un identificador para el rate limiting del backend.
-  // ----------------------------------------------------------
+  /*
+   * ------------------------------------------------------------
+   * SESSION ID
+   * ------------------------------------------------------------
+   */
+
   function generateId(){
     if(window.crypto && typeof window.crypto.randomUUID === 'function'){
       return 'sess_' + window.crypto.randomUUID().replace(/-/g, '');
     }
+
     var chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
     var out = '';
-    for(var i = 0; i < 32; i++){ out += chars.charAt(Math.floor(Math.random() * chars.length)); }
+
+    for(var i = 0; i < 32; i++){
+      out += chars.charAt(
+        Math.floor(Math.random() * chars.length)
+      );
+    }
+
     return 'sess_' + out;
   }
 
   function getSessionId(){
     try {
-      var existing = window.sessionStorage.getItem('jbaiSessionId');
+      var existing =
+        window.sessionStorage.getItem('jbaiSessionId');
+
       if(existing) return existing;
+
       var fresh = generateId();
-      window.sessionStorage.setItem('jbaiSessionId', fresh);
+
+      window.sessionStorage.setItem(
+        'jbaiSessionId',
+        fresh
+      );
+
       return fresh;
+
     } catch(e){
-      // sessionStorage no disponible (modo privado estricto, etc.):
-      // se mantiene un id en memoria para el resto de la sesión.
-      if(!getSessionId._fallback) getSessionId._fallback = generateId();
+
+      if(!getSessionId._fallback){
+        getSessionId._fallback = generateId();
+      }
+
       return getSessionId._fallback;
     }
   }
 
   var sessionId = getSessionId();
 
+  /*
+   * ------------------------------------------------------------
+   * PANEL
+   * ------------------------------------------------------------
+   */
+
   function openPanel(){
     isOpen = true;
+
     panel.classList.add('jbai-open');
-    launcher.setAttribute('aria-expanded', 'true');
+
+    launcher.setAttribute(
+      'aria-expanded',
+      'true'
+    );
+
     launcher.classList.add('jbai-hide');
-    setTimeout(function(){ input && input.focus(); }, 200);
+
+    setTimeout(function(){
+      if(input) input.focus();
+    }, 200);
   }
 
   function closePanel(){
     isOpen = false;
+
     panel.classList.remove('jbai-open');
-    launcher.setAttribute('aria-expanded', 'false');
+
+    launcher.setAttribute(
+      'aria-expanded',
+      'false'
+    );
+
     launcher.classList.remove('jbai-hide');
   }
 
-  launcher.addEventListener('click', function(){
-    isOpen ? closePanel() : openPanel();
-  });
-  closeBtn.addEventListener('click', closePanel);
+  launcher.addEventListener(
+    'click',
+    function(){
+      isOpen
+        ? closePanel()
+        : openPanel();
+    }
+  );
 
-  document.addEventListener('keydown', function(e){
-    if(e.key === 'Escape' && isOpen) closePanel();
-  });
+  if(closeBtn){
+    closeBtn.addEventListener(
+      'click',
+      closePanel
+    );
+  }
+
+  document.addEventListener(
+    'keydown',
+    function(e){
+      if(e.key === 'Escape' && isOpen){
+        closePanel();
+      }
+    }
+  );
+
+  /*
+   * ------------------------------------------------------------
+   * UI
+   * ------------------------------------------------------------
+   */
 
   function scrollToBottom(){
     body.scrollTop = body.scrollHeight;
@@ -1720,24 +1805,42 @@ footer{ padding:50px 0 40px; }
 
   function addMessage(text, who){
     var div = document.createElement('div');
-    div.className = 'jbai-msg ' + (who === 'user' ? 'jbai-msg-user' : 'jbai-msg-bot');
+
+    div.className =
+      'jbai-msg ' +
+      (
+        who === 'user'
+          ? 'jbai-msg-user'
+          : 'jbai-msg-bot'
+      );
+
     div.textContent = text;
+
     body.appendChild(div);
+
     scrollToBottom();
   }
 
   function showTyping(){
     var t = document.createElement('div');
+
     t.className = 'jbai-typing';
     t.id = 'jbaiTyping';
-    t.innerHTML = '<span></span><span></span><span></span>';
+
+    t.innerHTML =
+      '<span></span><span></span><span></span>';
+
     body.appendChild(t);
+
     scrollToBottom();
+
     return t;
   }
 
   function removeTyping(t){
-    if(t && t.parentNode) t.parentNode.removeChild(t);
+    if(t && t.parentNode){
+      t.parentNode.removeChild(t);
+    }
   }
 
   function hideQuickChipsIfFirstMessage(){
@@ -1749,261 +1852,1172 @@ footer{ padding:50px 0 40px; }
 
   function setSendingState(sending){
     isSending = sending;
-    if(sendBtn) sendBtn.disabled = sending;
-    if(input) input.disabled = sending;
+
+    if(sendBtn){
+      sendBtn.disabled = sending;
+    }
+
+    if(input){
+      input.disabled = sending;
+    }
   }
 
-  // ----------------------------------------------------------
-  // Comunicación real con el backend. Nunca llama a Gemini
-  // directamente ni maneja ninguna API key: eso vive únicamente
-  // en el servidor (api/_lib/ai-router.js).
-  // ----------------------------------------------------------
-  function friendlyErrorFor(status, backendMessage){
-    if(backendMessage) return backendMessage;
-    if(status === 429) return 'Has alcanzado temporalmente el límite de mensajes. Inténtalo nuevamente en unos minutos.';
-    if(status === 400) return 'No pudimos procesar ese mensaje. Intenta reformularlo.';
+  /*
+   * ------------------------------------------------------------
+   * BACKEND CHAT
+   * ------------------------------------------------------------
+   */
+
+  function friendlyErrorFor(
+    status,
+    backendMessage
+  ){
+    if(backendMessage){
+      return backendMessage;
+    }
+
+    if(status === 429){
+      return 'Has alcanzado temporalmente el límite de mensajes. Inténtalo nuevamente en unos minutos.';
+    }
+
+    if(status === 400){
+      return 'No pudimos procesar ese mensaje. Intenta reformularlo.';
+    }
+
     return 'El asistente no está disponible en este momento. Intenta de nuevo en unos segundos o escríbenos por WhatsApp.';
   }
 
   async function askBackend(){
-    var controller = (typeof AbortController !== 'undefined') ? new AbortController() : null;
-    var timeoutId = controller ? setTimeout(function(){ controller.abort(); }, REQUEST_TIMEOUT_MS) : null;
+
+    var controller =
+      typeof AbortController !== 'undefined'
+        ? new AbortController()
+        : null;
+
+    var timeoutId =
+      controller
+        ? setTimeout(
+            function(){
+              controller.abort();
+            },
+            REQUEST_TIMEOUT_MS
+          )
+        : null;
 
     try {
-      var response = await fetch(CHAT_ENDPOINT, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sessionId: sessionId,
-          messages: history.slice(-MAX_HISTORY_TO_SEND)
-        }),
-        signal: controller ? controller.signal : undefined
-      });
+
+      var response = await fetch(
+        CHAT_ENDPOINT,
+        {
+          method: 'POST',
+
+          headers: {
+            'Content-Type':
+              'application/json'
+          },
+
+          body: JSON.stringify({
+            sessionId: sessionId,
+
+            messages:
+              history.slice(
+                -MAX_HISTORY_TO_SEND
+              )
+          }),
+
+          signal:
+            controller
+              ? controller.signal
+              : undefined
+        }
+      );
 
       var data = null;
-      try { data = await response.json(); } catch(parseErr){ data = null; }
 
-      if(!response.ok || !data || data.ok !== true){
-        var msg = friendlyErrorFor(response.status, data && data.message);
-        return { ok: false, message: msg };
+      try {
+        data = await response.json();
+      } catch(parseErr){
+        data = null;
       }
 
-      return { ok: true, reply: data.reply, leadScore: (data.meta && typeof data.meta.leadScore === 'number') ? data.meta.leadScore : null };
+      if(
+        !response.ok ||
+        !data ||
+        data.ok !== true
+      ){
+
+        return {
+          ok: false,
+
+          message:
+            friendlyErrorFor(
+              response.status,
+              data && data.message
+            )
+        };
+      }
+
+      return {
+        ok: true,
+
+        reply: data.reply,
+
+        leadScore:
+          data.meta &&
+          typeof data.meta.leadScore === 'number'
+            ? data.meta.leadScore
+            : null
+      };
+
     } catch(networkErr){
-      var isAbort = networkErr && networkErr.name === 'AbortError';
+
+      var isAbort =
+        networkErr &&
+        networkErr.name === 'AbortError';
+
       return {
         ok: false,
-        message: isAbort
-          ? 'El asistente está tardando más de lo normal. Intenta de nuevo en unos segundos.'
-          : 'No pudimos conectar con el asistente. Verifica tu conexión e inténtalo nuevamente.'
+
+        message:
+          isAbort
+            ? 'El asistente está tardando más de lo normal. Intenta de nuevo en unos segundos.'
+            : 'No pudimos conectar con el asistente. Verifica tu conexión e inténtalo nuevamente.'
       };
+
     } finally {
-      if(timeoutId) clearTimeout(timeoutId);
+
+      if(timeoutId){
+        clearTimeout(timeoutId);
+      }
     }
   }
 
+  /*
+   * ------------------------------------------------------------
+   * MENSAJE DEL USUARIO
+   * ------------------------------------------------------------
+   */
+
   async function submitUserMessage(text){
-    if(!text || isSending) return;
+
+    if(
+      !text ||
+      isSending ||
+      contactFormOpen
+    ){
+      return;
+    }
 
     hideQuickChipsIfFirstMessage();
-    addMessage(text, 'user');
-    history.push({ role: 'user', content: text });
 
+    addMessage(
+      text,
+      'user'
+    );
+
+ history.push
     setSendingState(true);
+
     var typing = showTyping();
 
-    var result = await askBackend();
+    var result =
+      await askBackend();
 
     removeTyping(typing);
+
     setSendingState(false);
 
     if(result.ok){
-      addMessage(result.reply, 'bot');
-      history.push({ role: 'assistant', content: result.reply });
 
-      if(!consentAsked && typeof result.leadScore === 'number' && result.leadScore >= LEAD_SCORE_THRESHOLD){
+      addMessage(
+        result.reply,
+        'bot'
+      );
+
+      history.push({
+        role: 'assistant',
+        content: result.reply
+      });
+
+      /*
+       * El consentimiento aparece únicamente
+       * cuando el detector server-side considera
+       * que existe una oportunidad real.
+       */
+      if(
+        !consentAsked &&
+        !leadCaptured &&
+        typeof result.leadScore === 'number' &&
+        result.leadScore >= LEAD_SCORE_THRESHOLD
+      ){
+
         consentAsked = true;
-        setTimeout(showConsentPrompt, 350);
+
+        setTimeout(
+          showConsentPrompt,
+          350
+        );
       }
+
     } else {
-      addMessage(result.message, 'bot');
-      // No se agrega el error al historial que se reenvía a Gemini.
+
+      addMessage(
+        result.message,
+        'bot'
+      );
     }
 
-    if(input) input.focus();
+    if(input){
+      input.focus();
+    }
   }
 
-  // ----------------------------------------------------------
-  // Flujo de consentimiento (solo se dispara cuando la propia
-  // conversación ya sugiere una oportunidad real, vía leadScore
-  // calculado en el servidor — nunca al iniciar la conversación).
-  // ----------------------------------------------------------
-  var LEAD_SCORE_THRESHOLD = 60;
-  var consentAsked = false;
+  /*
+   * ------------------------------------------------------------
+   * CONSENTIMIENTO
+   * ------------------------------------------------------------
+   */
 
   function showConsentPrompt(){
+
     addMessage(
       'Para poder dar seguimiento a tu proyecto necesitamos algunos datos de contacto. Antes de continuar, ¿autorizas a JB TECH a tratar la información que compartas para atender tu solicitud y contactarte sobre el proyecto?',
       'bot'
     );
 
-    var row = document.createElement('div');
-    row.className = 'jbai-quick';
-    row.style.marginTop = '2px';
+    var row =
+      document.createElement('div');
 
-    var linkBtn = document.createElement('a');
-    linkBtn.className = 'jbai-chip';
-    linkBtn.href = '/politica-privacidad.html';
-    linkBtn.target = '_blank';
-    linkBtn.rel = 'noopener';
-    linkBtn.textContent = '📄 Consultar política de privacidad';
+    row.className =
+      'jbai-quick';
 
-    var yesBtn = document.createElement('button');
-    yesBtn.type = 'button';
-    yesBtn.className = 'jbai-chip';
-    yesBtn.textContent = '✅ Autorizo el tratamiento de mis datos';
+    row.style.marginTop =
+      '2px';
 
-    var noBtn = document.createElement('button');
-    noBtn.type = 'button';
-    noBtn.className = 'jbai-chip';
-    noBtn.textContent = '❌ No autorizo';
+    var privacy =
+      document.createElement('a');
 
-    row.appendChild(linkBtn);
-    row.appendChild(yesBtn);
-    row.appendChild(noBtn);
+    privacy.className =
+      'jbai-chip';
+
+    privacy.href =
+      '/politica-privacidad.html';
+
+    privacy.target =
+      '_blank';
+
+    privacy.rel =
+      'noopener';
+
+    privacy.textContent =
+      '📄 Consultar política de privacidad';
+
+    var yesBtn =
+      document.createElement('button');
+
+    yesBtn.type =
+      'button';
+
+    yesBtn.className =
+      'jbai-chip';
+
+    yesBtn.textContent =
+      '✅ Autorizo el tratamiento de mis datos';
+
+    var noBtn =
+      document.createElement('button');
+
+    noBtn.type =
+      'button';
+
+    noBtn.className =
+      'jbai-chip';
+
+    noBtn.textContent =
+      '❌ No autorizo';
+
+    row.appendChild(
+      privacy
+    );
+
+    row.appendChild(
+      yesBtn
+    );
+
+    row.appendChild(
+      noBtn
+    );
+
     body.appendChild(row);
+
     scrollToBottom();
 
-    function cleanupRow(){
-      if(row.parentNode) row.parentNode.removeChild(row);
+    function cleanup(){
+      if(row.parentNode){
+        row.parentNode.removeChild(row);
+      }
     }
 
-    yesBtn.addEventListener('click', function(){
-      cleanupRow();
-      addMessage('✅ Autorizo el tratamiento de mis datos', 'user');
-      showContactForm();
-    });
+    yesBtn.addEventListener(
+      'click',
+      function(){
 
-    noBtn.addEventListener('click', function(){
-      cleanupRow();
-      addMessage('❌ No autorizo', 'user');
-      addMessage('Está bien. Podemos continuar sin recopilar esos datos.', 'bot');
-    });
+        cleanup();
+
+        addMessage(
+          '✅ Autorizo el tratamiento de mis datos',
+          'user'
+        );
+
+        showContactForm();
+      }
+    );
+
+    noBtn.addEventListener(
+      'click',
+      function(){
+
+        cleanup();
+
+        addMessage(
+          '❌ No autorizo',
+          'user'
+        );
+
+        /*
+         * No se bloquea la conversación.
+         * El usuario puede continuar hablando.
+         */
+        addMessage(
+          'Está bien. Podemos continuar trabajando la idea sin recopilar datos de contacto. Si quieres, cuéntame qué más te gustaría agregar al proyecto.',
+          'bot'
+        );
+
+        /*
+         * Evita que vuelva a aparecer
+         * inmediatamente el consentimiento.
+         */
+        consentAsked = true;
+
+        if(input){
+          input.focus();
+        }
+      }
+    );
   }
+
+  /*
+   * ------------------------------------------------------------
+   * ESTILOS DEL FORMULARIO
+   *
+   * Se agregan dinámicamente para no tocar
+   * el CSS principal del portafolio.
+   * ------------------------------------------------------------
+   */
+
+  function injectContactStyles(){
+
+    if(
+      document.getElementById(
+        'jbaiContactDynamicStyles'
+      )
+    ){
+      return;
+    }
+
+    var style =
+      document.createElement('style');
+
+    style.id =
+      'jbaiContactDynamicStyles';
+
+    style.textContent = `
+      .jbai-contact-form{
+        display:flex;
+        flex-direction:column;
+        gap:8px;
+        margin:8px 0;
+        width:100%;
+        box-sizing:border-box;
+      }
+
+      .jbai-contact-form input,
+      .jbai-contact-form select{
+        width:100%;
+        box-sizing:border-box;
+        border:1px solid rgba(127,127,127,.28);
+        border-radius:10px;
+        padding:10px 12px;
+        font:inherit;
+        outline:none;
+      }
+
+      .jbai-contact-row{
+        display:grid;
+        grid-template-columns:minmax(120px, .9fr) minmax(120px, 1.4fr);
+        gap:8px;
+      }
+
+      .jbai-contact-help{
+        font-size:.72rem;
+        opacity:.68;
+        line-height:1.35;
+      }
+
+      .jbai-contact-submit{
+        width:100%;
+      }
+
+      @media(max-width:420px){
+        .jbai-contact-row{
+          grid-template-columns:1fr;
+        }
+      }
+    `;
+
+    document.head.appendChild(style);
+  }
+
+  /*
+   * ------------------------------------------------------------
+   * CONTACT FORM
+   * ------------------------------------------------------------
+   */
 
   function showContactForm(){
-    var wrap = document.createElement('div');
-    wrap.className = 'jbai-inline-form';
 
-    var nameInput = document.createElement('input');
-    nameInput.className = 'jbai-input';
-    nameInput.type = 'text';
-    nameInput.placeholder = 'Tu nombre';
-    nameInput.maxLength = 100;
+    if(contactFormOpen){
+      return;
+    }
 
-    var contactInput = document.createElement('input');
-    contactInput.className = 'jbai-input';
-    contactInput.type = 'text';
-    contactInput.placeholder = 'WhatsApp o correo';
-    contactInput.maxLength = 100;
+    contactFormOpen = true;
 
-    var submitBtn = document.createElement('button');
-    submitBtn.type = 'button';
-    submitBtn.className = 'jbai-chip';
-    submitBtn.textContent = 'Enviar mis datos';
+    injectContactStyles();
 
-    wrap.appendChild(nameInput);
-    wrap.appendChild(contactInput);
-    wrap.appendChild(submitBtn);
-    body.appendChild(wrap);
+    var wrap =
+      document.createElement('div');
+
+    wrap.className =
+      'jbai-inline-form jbai-contact-form';
+
+    /*
+     * NOMBRE
+     */
+    var nameInput =
+      document.createElement('input');
+
+    nameInput.className =
+      'jbai-input';
+
+    nameInput.type =
+      'text';
+
+    nameInput.placeholder =
+      'Tu nombre';
+
+    nameInput.maxLength =
+      100;
+
+    nameInput.autocomplete =
+      'name';
+
+    /*
+     * PAÍS
+     */
+    var countrySelect =
+      document.createElement('select');
+
+    countrySelect.className =
+      'jbai-input';
+
+    countrySelect.setAttribute(
+      'aria-label',
+      'País'
+    );
+
+    COUNTRIES.forEach(
+      function(country){
+
+        var option =
+          document.createElement('option');
+
+        option.value =
+          country.code;
+
+        option.textContent =
+          country.flag +
+          ' ' +
+          country.name +
+          ' (' +
+          country.dial +
+          ')';
+
+        if(country.code === 'CO'){
+          option.selected = true;
+        }
+
+        countrySelect.appendChild(
+          option
+        );
+      }
+    );
+
+    /*
+     * WHATSAPP
+     */
+    var whatsappInput =
+      document.createElement('input');
+
+    whatsappInput.className =
+      'jbai-input';
+
+    whatsappInput.type =
+      'tel';
+
+    whatsappInput.placeholder =
+      'Número de WhatsApp';
+
+    whatsappInput.maxLength =
+      20;
+
+    whatsappInput.autocomplete =
+      'tel';
+
+    /*
+     * CORREO
+     */
+    var emailInput =
+      document.createElement('input');
+
+    emailInput.className =
+      'jbai-input';
+
+    emailInput.type =
+      'email';
+
+    emailInput.placeholder =
+      'Correo electrónico (opcional)';
+
+    emailInput.maxLength =
+      100;
+
+    emailInput.autocomplete =
+      'email';
+
+    /*
+     * TEXTO AYUDA
+     */
+    var help =
+      document.createElement('div');
+
+    help.className =
+      'jbai-contact-help';
+
+    help.textContent =
+      'Selecciona tu país e ingresa tu número de WhatsApp sin el indicativo.';
+
+    /*
+     * BOTÓN
+     */
+    var submitBtn =
+      document.createElement('button');
+
+    submitBtn.type =
+      'button';
+
+    submitBtn.className =
+      'jbai-chip jbai-contact-submit';
+
+    submitBtn.textContent =
+      'Enviar mis datos';
+
+    /*
+     * ESTRUCTURA
+     */
+    var countryRow =
+      document.createElement('div');
+
+    countryRow.className =
+      'jbai-contact-row';
+
+    countryRow.appendChild(
+      countrySelect
+    );
+
+    countryRow.appendChild(
+      whatsappInput
+    );
+
+    wrap.appendChild(
+      nameInput
+    );
+
+    wrap.appendChild(
+      countryRow
+    );
+
+    wrap.appendChild(
+      emailInput
+    );
+
+    wrap.appendChild(
+      help
+    );
+
+    wrap.appendChild(
+      submitBtn
+    );
+
+    body.appendChild(
+      wrap
+    );
+
     scrollToBottom();
+
     nameInput.focus();
 
-    submitBtn.addEventListener('click', async function(){
-      var name = (nameInput.value || '').trim();
-      var contactValue = (contactInput.value || '').trim();
+    /*
+     * Actualiza ayuda según país.
+     */
+    countrySelect.addEventListener(
+      'change',
+      function(){
 
-      if(!name || !contactValue){
-        addMessage('Necesito al menos tu nombre y un WhatsApp o correo para continuar.', 'bot');
-        return;
-      }
+        var country =
+          COUNTRIES.find(
+            function(item){
+              return item.code ===
+                countrySelect.value;
+            }
+          );
 
-      submitBtn.disabled = true;
-      nameInput.disabled = true;
-      contactInput.disabled = true;
+        if(country){
 
-      var isEmail = contactValue.indexOf('@') !== -1;
-      var contact = { name: name };
-      if(isEmail) contact.email = contactValue; else contact.whatsapp = contactValue;
-
-      var typing = showTyping();
-      var leadResult = await sendLead(contact);
-      removeTyping(typing);
-
-      if(wrap.parentNode) wrap.parentNode.removeChild(wrap);
-      addMessage(name + ' — ' + contactValue, 'user');
-
-      if(leadResult.ok && leadResult.stored){
-        if(leadResult.notified && (leadResult.notified.email || leadResult.notified.whatsapp)){
-          addMessage('¡Listo! Ya quedó registrada tu información y avisamos a nuestro equipo. Te contactaremos pronto.', 'bot');
-        } else {
-          addMessage('Tu información quedó guardada, aunque tuvimos un problema notificando a nuestro equipo en este momento. Aun así la revisaremos pronto.', 'bot');
+          help.textContent =
+            'Se guardará como ' +
+            country.dial +
+            ' + tu número. No necesitas escribir el indicativo.';
         }
-      } else {
-        addMessage('Tuvimos un problema guardando tu información. ¿Puedes intentar de nuevo en un momento, o prefieres escribirnos directo por WhatsApp?', 'bot');
       }
-    });
+    );
+
+    /*
+     * ----------------------------------------------------------
+     * GUARDAR
+     * ----------------------------------------------------------
+     */
+
+    submitBtn.addEventListener(
+      'click',
+      async function(){
+
+        var name =
+          (nameInput.value || '')
+            .trim();
+
+        var whatsapp =
+          (whatsappInput.value || '')
+            .trim();
+
+        var email =
+          (emailInput.value || '')
+            .trim();
+
+        var selectedCountry =
+          COUNTRIES.find(
+            function(item){
+              return item.code ===
+                countrySelect.value;
+            }
+          );
+
+        /*
+         * Limpieza del número.
+         */
+        var cleanPhone =
+          whatsapp.replace(
+            /[^\d+]/g,
+            ''
+          );
+
+        /*
+         * Si el usuario escribió +57
+         * aunque Colombia esté seleccionada,
+         * evitamos duplicarlo.
+         */
+        if(cleanPhone.charAt(0) === '+'){
+          cleanPhone =
+            cleanPhone.replace(
+              /^\+/,
+              ''
+            );
+        }
+
+        if(
+          !name ||
+          !cleanPhone
+        ){
+
+          addMessage(
+            'Necesito tu nombre y un número de WhatsApp para poder guardar la solicitud.',
+            'bot'
+          );
+
+          return;
+        }
+
+        /*
+         * Validación básica del teléfono.
+         */
+        if(
+          cleanPhone.length < 7 ||
+          cleanPhone.length > 15
+        ){
+
+          addMessage(
+            'Revisa el número de WhatsApp. Debe contener entre 7 y 15 dígitos.',
+            'bot'
+          );
+
+          return;
+        }
+
+        /*
+         * Validación básica del correo,
+         * solo si fue proporcionado.
+         */
+        if(
+          email &&
+          !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+        ){
+
+          addMessage(
+            'El correo parece no tener un formato válido. Puedes corregirlo o dejarlo vacío.',
+            'bot'
+          );
+
+          return;
+        }
+
+        /*
+         * Construcción internacional.
+         */
+        var internationalWhatsApp = '';
+
+        if(selectedCountry){
+
+          /*
+           * Si el usuario escribió el indicativo
+           * manualmente, intentamos evitar duplicarlo.
+           */
+          var dialDigits =
+            selectedCountry.dial
+              .replace(
+                '+',
+                ''
+              );
+
+          if(
+            cleanPhone.indexOf(
+              dialDigits
+            ) === 0 &&
+            cleanPhone.length >
+              dialDigits.length + 6
+          ){
+
+            internationalWhatsApp =
+              '+' +
+              cleanPhone;
+
+          } else {
+
+            internationalWhatsApp =
+              selectedCountry.dial +
+              cleanPhone;
+          }
+
+        } else {
+
+          internationalWhatsApp =
+            '+' +
+            cleanPhone;
+        }
+
+        /*
+         * Bloquear formulario mientras se procesa.
+         */
+        submitBtn.disabled = true;
+        nameInput.disabled = true;
+        countrySelect.disabled = true;
+        whatsappInput.disabled = true;
+        emailInput.disabled = true;
+
+        var typing =
+          showTyping();
+
+        var contact = {
+          name: name,
+          whatsapp:
+            internationalWhatsApp
+        };
+
+        if(email){
+          contact.email =
+            email;
+        }
+
+        var leadResult =
+          await sendLead(contact);
+
+        removeTyping(
+          typing
+        );
+
+        if(wrap.parentNode){
+          wrap.parentNode.removeChild(
+            wrap
+          );
+        }
+
+        contactFormOpen = false;
+
+        /*
+         * Mostramos al usuario únicamente
+         * el número internacional que se guardó.
+         */
+        var visibleContact =
+          internationalWhatsApp;
+
+        if(email){
+          visibleContact +=
+            ' · ' +
+            email;
+        }
+
+        addMessage(
+          name +
+          ' — ' +
+          visibleContact,
+          'user'
+        );
+
+        /*
+         * ------------------------------------------------------
+         * LEAD GUARDADO
+         * ------------------------------------------------------
+         */
+
+        if(
+          leadResult.ok &&
+          leadResult.stored
+        ){
+
+          leadCaptured = true;
+
+          var notifiedEmail =
+            leadResult.notified &&
+            leadResult.notified.email === true;
+
+          var notifiedWhatsApp =
+            leadResult.notified &&
+            leadResult.notified.whatsapp === true;
+
+          /*
+           * Mensaje profesional.
+           * NO mata la conversación.
+           */
+          var confirmation =
+            'Tu solicitud quedó registrada correctamente. ' +
+            'Nuestro sistema ya tiene la información necesaria para revisar tu proyecto.';
+
+          if(
+            notifiedEmail ||
+            notifiedWhatsApp
+          ){
+
+            confirmation +=
+              ' Además, la información fue enviada al canal de notificación correspondiente.';
+          }
+
+          confirmation +=
+            ' Podemos seguir afinando la idea antes de que nuestro equipo la revise.';
+
+          addMessage(
+            confirmation,
+            'bot'
+          );
+
+          /*
+           * Esta respuesta se incorpora al historial
+           * para que Gemini entienda que el lead ya fue
+           * registrado y continúe la conversación.
+           *
+           * NO enviamos nombre, teléfono ni correo.
+           */
+          history.push({
+            role: 'assistant',
+            content:
+              'La solicitud del usuario ya fue registrada correctamente. Puede continuar conversando y agregar detalles sobre funciones, diseño, estilo, referencias o necesidades adicionales del proyecto.'
+          });
+
+          /*
+           * Pregunta de continuación.
+           */
+          setTimeout(
+            function(){
+
+              addMessage(
+                '¿Quieres agregar alguna función, estilo visual, referencia, integración o detalle adicional a tu proyecto?',
+                'bot'
+              );
+
+              if(input){
+                input.focus();
+              }
+
+            },
+            500
+          );
+
+        } else if(
+          leadResult.ok &&
+          !leadResult.stored
+        ){
+
+          /*
+           * Backend respondió, pero Supabase
+           * no confirmó almacenamiento.
+           */
+          addMessage(
+            'Pudimos procesar tu solicitud, pero el almacenamiento no quedó confirmado. Podemos seguir trabajando la idea mientras intentamos nuevamente guardar tus datos.',
+            'bot'
+          );
+
+          contactFormOpen = false;
+
+        } else {
+
+          /*
+           * Error real de persistencia.
+           * Permitimos reintentar sin matar conversación.
+           */
+          addMessage(
+            'Tuvimos un problema guardando tus datos. Puedes intentarlo nuevamente o continuar conversando sobre el proyecto sin volver a empezar desde cero.',
+            'bot'
+          );
+
+          /*
+           * Mostrar nuevamente el formulario
+           * después de un pequeño intervalo.
+           */
+          setTimeout(
+            function(){
+              showContactForm();
+            },
+            700
+          );
+        }
+
+        if(input){
+          input.focus();
+        }
+      }
+    );
   }
+
+  /*
+   * ------------------------------------------------------------
+   * LEAD ENDPOINT
+   * ------------------------------------------------------------
+   */
 
   async function sendLead(contact){
+
     try {
-      var response = await fetch('/api/lead', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId: sessionId, consent: true, contact: contact })
-      });
+
+      var response =
+        await fetch(
+          '/api/lead',
+          {
+            method: 'POST',
+
+            headers: {
+              'Content-Type':
+                'application/json'
+            },
+
+            body: JSON.stringify({
+              sessionId:
+                sessionId,
+
+              consent:
+                true,
+
+              contact:
+                contact
+            })
+          }
+        );
+
       var data = null;
-      try { data = await response.json(); } catch(e){ data = null; }
-      if(!response.ok || !data || data.ok !== true){
-        return { ok: false, stored: false, notified: { email: false, whatsapp: false } };
+
+      try {
+        data =
+          await response.json();
+      } catch(e){
+        data = null;
       }
+
+      if(
+        !response.ok ||
+        !data ||
+        data.ok !== true
+      ){
+
+        return {
+          ok: false,
+          stored: false,
+          notified: {
+            email: false,
+            whatsapp: false
+          }
+        };
+      }
+
       return data;
+
     } catch(err){
-      return { ok: false, stored: false, notified: { email: false, whatsapp: false } };
+
+      return {
+        ok: false,
+        stored: false,
+        notified: {
+          email: false,
+          whatsapp: false
+        }
+      };
     }
   }
+
+  /*
+   * ------------------------------------------------------------
+   * QUICK CHIPS
+   * ------------------------------------------------------------
+   */
 
   if(quick){
-    quick.addEventListener('click', function(e){
-      var btn = e.target.closest('[data-jbai-quick]');
-      if(!btn || isSending) return;
-      var key = btn.getAttribute('data-jbai-quick');
-      submitUserMessage(QUICK_LABELS[key] || btn.textContent);
-    });
+
+    quick.addEventListener(
+      'click',
+      function(e){
+
+        var btn =
+          e.target.closest(
+            '[data-jbai-quick]'
+          );
+
+        if(
+          !btn ||
+          isSending ||
+          contactFormOpen
+        ){
+          return;
+        }
+
+        var key =
+          btn.getAttribute(
+            'data-jbai-quick'
+          );
+
+        submitUserMessage(
+          QUICK_LABELS[key] ||
+          btn.textContent
+        );
+      }
+    );
   }
+
+  /*
+   * ------------------------------------------------------------
+   * INPUT
+   * ------------------------------------------------------------
+   */
 
   function autoGrow(){
-    input.style.height = 'auto';
-    input.style.height = Math.min(input.scrollHeight, 90) + 'px';
+
+    if(!input){
+      return;
+    }
+
+    input.style.height =
+      'auto';
+
+    input.style.height =
+      Math.min(
+        input.scrollHeight,
+        90
+      ) + 'px';
   }
-  input && input.addEventListener('input', autoGrow);
+
+  if(input){
+    input.addEventListener(
+      'input',
+      autoGrow
+    );
+  }
 
   function sendMessage(){
-    if(isSending) return;
-    var text = (input.value || '').trim();
-    if(!text) return;
+
+    if(
+      isSending ||
+      contactFormOpen
+    ){
+      return;
+    }
+
+    var text =
+      (input.value || '')
+        .trim();
+
+    if(!text){
+      return;
+    }
+
     input.value = '';
+
     autoGrow();
-    submitUserMessage(text);
+
+    submitUserMessage(
+      text
+    );
   }
 
-  sendBtn && sendBtn.addEventListener('click', sendMessage);
-  input && input.addEventListener('keydown', function(e){
-    if(e.key === 'Enter' && !e.shiftKey){
-      e.preventDefault();
-      sendMessage();
-    }
-  });
+  if(sendBtn){
+    sendBtn.addEventListener(
+      'click',
+      sendMessage
+    );
+  }
+
+  if(input){
+
+    input.addEventListener(
+      'keydown',
+      function(e){
+
+        if(
+          e.key === 'Enter' &&
+          !e.shiftKey
+        ){
+
+          e.preventDefault();
+
+          sendMessage();
+        }
+      }
+    );
+  }
+
 })();
 </script>
 </body>
