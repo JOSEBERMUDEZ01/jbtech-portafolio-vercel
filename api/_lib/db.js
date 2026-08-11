@@ -7,18 +7,18 @@
 // IMPORTANTE:
 // - Este archivo SOLO se ejecuta en el backend de Vercel.
 // - SUPABASE_SECRET_KEY NUNCA debe llegar al navegador.
-// - La clave utilizada es la nueva Secret Key de Supabase.
 // - La Secret Key tiene privilegios elevados y bypass de RLS.
 // - Este archivo NO crea tablas.
 // - Utiliza las tablas existentes:
+//
 //      conversaciones
 //      leads
 //      contactos
 //
-// Variable de entorno requerida en Vercel:
+// Variables de entorno requeridas en Vercel:
 //
-//   SUPABASE_URL
-//   SUPABASE_SECRET_KEY
+//      SUPABASE_URL
+//      SUPABASE_SECRET_KEY
 // ============================================================
 
 const { createClient } = require('@supabase/supabase-js');
@@ -55,7 +55,7 @@ function getClient() {
 }
 
 // ============================================================
-// ESTADOS PERMITIDOS PARA LOS LEADS
+// ESTADOS PERMITIDOS
 // ============================================================
 
 const ALLOWED_ESTADOS = [
@@ -92,23 +92,25 @@ async function saveLeadPackage(input) {
   const supabase = getClient();
   const nowIso = new Date().toISOString();
 
-  // ----------------------------------------------------------
+  // ==========================================================
   // 1. CONVERSACIÓN
-  // ----------------------------------------------------------
+  // ==========================================================
 
-  const { data: conversation, error: conversationError } =
-    await supabase
-      .from('conversaciones')
-      .insert({
-        session_id: input.sessionId,
-        fecha: nowIso,
-        idioma: input.idioma || 'es',
-        estado: 'lead',
-        consentimiento: input.consent === true,
-        version_politica: input.policyVersion || null
-      })
-      .select('id')
-      .single();
+  const {
+    data: conversation,
+    error: conversationError
+  } = await supabase
+    .from('conversaciones')
+    .insert({
+      session_id: input.sessionId,
+      fecha: nowIso,
+      idioma: input.idioma || 'es',
+      estado: 'lead',
+      consentimiento: input.consent === true,
+      version_politica: input.policyVersion || null
+    })
+    .select('id')
+    .single();
 
   if (conversationError || !conversation) {
     console.error(
@@ -123,43 +125,45 @@ async function saveLeadPackage(input) {
 
   const conversationId = conversation.id;
 
-  // ----------------------------------------------------------
+  // ==========================================================
   // 2. LEAD
-  // ----------------------------------------------------------
+  // ==========================================================
 
   const summary =
     input.summary && typeof input.summary === 'object'
       ? input.summary
       : {};
 
-  const { error: leadError } = await supabase
+  const {
+    error: leadError
+  } = await supabase
     .from('leads')
     .insert({
       conversation_id: conversationId,
 
       proyecto:
         typeof summary.proyecto === 'string'
-          ? summary.proyecto
+          ? summary.proyecto.trim()
           : null,
 
       necesidad:
         typeof summary.necesidad === 'string'
-          ? summary.necesidad
+          ? summary.necesidad.trim()
           : null,
 
       problema:
         typeof summary.problema === 'string'
-          ? summary.problema
+          ? summary.problema.trim()
           : null,
 
       objetivo:
         typeof summary.objetivo === 'string'
-          ? summary.objetivo
+          ? summary.objetivo.trim()
           : null,
 
       solucion_sugerida:
         typeof summary.solucion_sugerida === 'string'
-          ? summary.solucion_sugerida
+          ? summary.solucion_sugerida.trim()
           : null,
 
       lead_score:
@@ -182,11 +186,11 @@ async function saveLeadPackage(input) {
     );
   }
 
-  // ----------------------------------------------------------
+  // ==========================================================
   // 3. CONTACTO
   //
   // SOLO si existe consentimiento explícito.
-  // ----------------------------------------------------------
+  // ==========================================================
 
   if (
     input.consent === true &&
@@ -211,27 +215,28 @@ async function saveLeadPackage(input) {
         : '';
 
     if (name || whatsapp || email) {
-      const { error: contactError } =
-        await supabase
-          .from('contactos')
-          .insert({
-            conversation_id: conversationId,
+      const {
+        error: contactError
+      } = await supabase
+        .from('contactos')
+        .insert({
+          conversation_id: conversationId,
 
-            nombre: name || null,
+          nombre: name || null,
 
-            correo: email || null,
+          correo: email || null,
 
-            whatsapp: whatsapp || null,
+          whatsapp: whatsapp || null,
 
-            fecha: nowIso,
+          fecha: nowIso,
 
-            consentimiento: true,
+          consentimiento: true,
 
-            consentimiento_fecha: nowIso,
+          consentimiento_fecha: nowIso,
 
-            version_politica:
-              input.policyVersion || null
-          });
+          version_politica:
+            input.policyVersion || null
+        });
 
       if (contactError) {
         console.error(
@@ -291,9 +296,9 @@ async function getDashboardCounts() {
     counts[estado] = count || 0;
   }
 
-  // ----------------------------------------------------------
-  // TOTAL DE CONTACTOS
-  // ----------------------------------------------------------
+  // ==========================================================
+  // TOTAL CONTACTOS
+  // ==========================================================
 
   const {
     count: totalContactos,
@@ -316,9 +321,9 @@ async function getDashboardCounts() {
     );
   }
 
-  // ----------------------------------------------------------
+  // ==========================================================
   // SOLICITUDES RECIENTES
-  // ----------------------------------------------------------
+  // ==========================================================
 
   const {
     data: recent,
@@ -402,59 +407,59 @@ async function listLeads(params = {}) {
     .from('leads')
     .select(
       `
-      id,
-      conversation_id,
-      proyecto,
-      necesidad,
-      problema,
-      objetivo,
-      solucion_sugerida,
-      lead_score,
-      estado,
-      fecha
+        id,
+        conversation_id,
+        proyecto,
+        necesidad,
+        problema,
+        objetivo,
+        solucion_sugerida,
+        lead_score,
+        estado,
+        fecha
       `,
       {
         count: 'exact'
       }
     );
 
-  // ----------------------------------------------------------
+  // ==========================================================
   // FILTRO ESTADO
-  // ----------------------------------------------------------
+  // ==========================================================
 
   if (estado) {
     if (!ALLOWED_ESTADOS.includes(estado)) {
-      throw new Error('Estado de filtro inválido.');
+      throw new Error(
+        'Estado de filtro inválido.'
+      );
     }
 
     query = query.eq('estado', estado);
   }
 
-  // ----------------------------------------------------------
+  // ==========================================================
   // FILTRO FECHA INICIAL
-  // ----------------------------------------------------------
+  // ==========================================================
 
   if (dateFrom) {
     query = query.gte('fecha', dateFrom);
   }
 
-  // ----------------------------------------------------------
+  // ==========================================================
   // FILTRO FECHA FINAL
-  // ----------------------------------------------------------
+  // ==========================================================
 
   if (dateTo) {
     query = query.lte('fecha', dateTo);
   }
 
-  // ----------------------------------------------------------
+  // ==========================================================
   // BÚSQUEDA
-  //
-  // Se limita la búsqueda a campos relevantes.
-  // ----------------------------------------------------------
+  // ==========================================================
 
   if (search) {
     const safeSearch = search
-      .replace(/[%_,()]/g, ' ')
+      .replace(/[%\\_,()]/g, ' ')
       .trim();
 
     if (safeSearch) {
@@ -464,9 +469,9 @@ async function listLeads(params = {}) {
     }
   }
 
-  // ----------------------------------------------------------
+  // ==========================================================
   // ORDEN + PAGINACIÓN
-  // ----------------------------------------------------------
+  // ==========================================================
 
   query = query
     .order('fecha', {
@@ -518,9 +523,9 @@ async function getLeadDetail(conversationId) {
 
   const supabase = getClient();
 
-  // ----------------------------------------------------------
+  // ==========================================================
   // CONVERSACIÓN
-  // ----------------------------------------------------------
+  // ==========================================================
 
   const {
     data: conversation,
@@ -545,9 +550,9 @@ async function getLeadDetail(conversationId) {
     );
   }
 
-  // ----------------------------------------------------------
+  // ==========================================================
   // LEAD
-  // ----------------------------------------------------------
+  // ==========================================================
 
   const {
     data: lead,
@@ -576,16 +581,17 @@ async function getLeadDetail(conversationId) {
     );
   }
 
-  // ----------------------------------------------------------
+  // ==========================================================
   // CONTACTO
   //
-  // Nunca se devuelve si la conversación no tiene
-  // consentimiento explícito.
-  // ----------------------------------------------------------
+  // Solo se devuelve con consentimiento explícito.
+  // ==========================================================
 
   let contacto = null;
 
-  if (conversation.consentimiento === true) {
+  if (
+    conversation.consentimiento === true
+  ) {
     const {
       data: contact,
       error: contactError
@@ -596,6 +602,7 @@ async function getLeadDetail(conversationId) {
         'conversation_id',
         conversationId
       )
+      .limit(1)
       .maybeSingle();
 
     if (contactError) {
@@ -633,7 +640,9 @@ async function updateLeadStatus(
     );
   }
 
-  if (!ALLOWED_ESTADOS.includes(estado)) {
+  if (
+    !ALLOWED_ESTADOS.includes(estado)
+  ) {
     throw new Error(
       'Estado inválido.'
     );
@@ -708,25 +717,25 @@ async function listContacts(params = {}) {
     .from('contactos')
     .select(
       `
-      id,
-      conversation_id,
-      nombre,
-      correo,
-      whatsapp,
-      fecha
+        id,
+        conversation_id,
+        nombre,
+        correo,
+        whatsapp,
+        fecha
       `,
       {
         count: 'exact'
       }
     );
 
-  // ----------------------------------------------------------
+  // ==========================================================
   // BÚSQUEDA
-  // ----------------------------------------------------------
+  // ==========================================================
 
   if (search) {
     const safeSearch = search
-      .replace(/[%_,()]/g, ' ')
+      .replace(/[%\\_,()]/g, ' ')
       .trim();
 
     if (safeSearch) {
@@ -736,9 +745,9 @@ async function listContacts(params = {}) {
     }
   }
 
-  // ----------------------------------------------------------
+  // ==========================================================
   // ORDEN + PAGINACIÓN
-  // ----------------------------------------------------------
+  // ==========================================================
 
   query = query
     .order('fecha', {
@@ -775,9 +784,9 @@ async function listContacts(params = {}) {
     };
   }
 
-  // ----------------------------------------------------------
+  // ==========================================================
   // OBTENER LEADS RELACIONADOS
-  // ----------------------------------------------------------
+  // ==========================================================
 
   const conversationIds = contacts
     .map(
@@ -815,9 +824,9 @@ async function listContacts(params = {}) {
     relatedLeads = leads || [];
   }
 
-  // ----------------------------------------------------------
+  // ==========================================================
   // MAPEAR LEADS POR CONVERSACIÓN
-  // ----------------------------------------------------------
+  // ==========================================================
 
   const leadByConversation = {};
 
@@ -827,9 +836,9 @@ async function listContacts(params = {}) {
     ] = lead;
   }
 
-  // ----------------------------------------------------------
+  // ==========================================================
   // RESPUESTA FINAL
-  // ----------------------------------------------------------
+  // ==========================================================
 
   const items = contacts.map(
     contact => {
