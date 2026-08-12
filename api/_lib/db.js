@@ -92,105 +92,178 @@ async function saveLeadPackage(input) {
   const supabase = getClient();
   const nowIso = new Date().toISOString();
 
-  // ==========================================================
-  // 1. CONVERSACIÓN
-  // ==========================================================
-
-  const {
-    data: conversation,
-    error: conversationError
-  } = await supabase
-    .from('conversaciones')
-    .insert({
-      session_id: input.sessionId,
-      fecha: nowIso,
-      idioma: input.idioma || 'es',
-      estado: 'lead',
-      consentimiento: input.consent === true,
-      version_politica: input.policyVersion || null
-    })
-    .select('id')
-    .single();
-
-  if (conversationError || !conversation) {
-    console.error(
-      'SUPABASE conversaciones INSERT ERROR:',
-      conversationError
-    );
-
-    throw new Error(
-      'No se pudo guardar la conversación en Supabase.'
-    );
-  }
-
-  const conversationId = conversation.id;
-
-  // ==========================================================
-  // 2. LEAD
-  // ==========================================================
-
   const summary =
     input.summary && typeof input.summary === 'object'
       ? input.summary
       : {};
 
+  const normalizedSummary = {
+    proyecto: typeof summary.proyecto === 'string' ? summary.proyecto.trim() : null,
+    necesidad: typeof summary.necesidad === 'string' ? summary.necesidad.trim() : null,
+    problema: typeof summary.problema === 'string' ? summary.problema.trim() : null,
+    objetivo: typeof summary.objetivo === 'string' ? summary.objetivo.trim() : null,
+    solucion_sugerida: typeof summary.solucion_sugerida === 'string' ? summary.solucion_sugerida.trim() : null,
+    lead_score: typeof input.leadScore === 'number' ? input.leadScore : null
+  };
+
+  // ==========================================================
+  // 1. CONVERSACIÓN — UNA POR SESSION_ID
+  // ==========================================================
+  // Si la sesión ya existe, reutilizamos su conversation_id.
+  // Esto evita crear una nueva conversación cada vez que el
+  // cliente aporta información adicional.
+  let conversation = null;
+
   const {
-    error: leadError
+    data: existingConversation,
+    error: existingConversationError
+  } = await supabase
+    .from('conversaciones')
+    .select('id, session_id, consentimiento, version_politica, fecha')
+    .eq('session_id', input.sessionId)
+    .order('fecha', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (existingConversationError) {
+    console.error('SUPABASE conversaciones LOOKUP ERROR:', existingConversationError);
+    throw new Error('No se pudo consultar la conversación en Supabase.');
+  }
+
+  if (existingConversation) {
+    conversation = existingConversation;
+
+    const { error: conversationUpdateError } = await supabase
+      .from('conversaciones')
+      .update({
+        fecha: nowIso,
+        idioma: input.idioma || 'es',
+        estado: 'lead',
+        consentimiento: input.consent === true || existingConversation.consentimiento === true,
+        version_politica: input.policyVersion || existingConversation.version_politica || null
+      })
+      .eq('id', conversation.id);
+
+    if (conversationUpdateError) {
+      console.error('SUPABASE conversaciones UPDATE ERROR:', conversationUpdateError);
+      throw new Error('No se pudo actualizar la conversación en Supabase.');
+    }
+  } else {
+    const {
+      data: createdConversation,
+      error: conversationError
+    } = await supabase
+      .from('conversaciones')
+      .insert({
+        session_id: input.sessionId,
+        fecha: nowIso,
+        idioma: input.idioma || 'es',
+        estado: 'lead',
+        consentimiento: input.consent === true,
+        version_politica: input.policyVersion || null
+      })
+      .select('id, session_id, consentimiento, version_politica, fecha')
+      .single();
+
+    if (conversationError || !createdConversation) {
+      console.error('SUPABASE conversaciones INSERT ERROR:', conversationError);
+      throw new Error('No se pudo guardar la conversación en Supabase.');
+    }
+
+    conversation = createdConversation;
+  }
+
+  const conversationId = conversation.id;
+
+  // ==========================================================
+  // 2. LEAD — CREAR UNA VEZ, ACTUALIZAR DESPUÉS
+  // ==========================================================
+  const {
+    data: existingLead,
+    error: existingLeadError
   } = await supabase
     .from('leads')
-    .insert({
-      conversation_id: conversationId,
+    .select('id, conversation_id, proyecto, necesidad, problema, objetivo, solucion_sugerida, lead_score, estado, fecha')
+    .eq('conversation_id', conversationId)
+    .order('fecha', { ascending: false })
+    .limit(1)
+    .maybeSingle();
 
-      proyecto:
-        typeof summary.proyecto === 'string'
-          ? summary.proyecto.trim()
-          : null,
+  if (existingLeadError) {
+    console.error('SUPABASE lead LOOKUP ERROR:', existingLeadError);
+    throw new Error('No se pudo consultar el lead en Supabase.');
+  }
 
-      necesidad:
-        typeof summary.necesidad === 'string'
-          ? summary.necesidad.trim()
-          : null,
+  let lead = existingLead;
+  let leadCreated = false;
+  let leadChanged = false;
 
-      problema:
-        typeof summary.problema === 'string'
-          ? summary.problema.trim()
-          : null,
+  if (!existingLead) {
+    const {
+      data: createdLead,
+      error: leadError
+    } = await supabase
+      .from('leads')
+      .insert({
+        conversation_id: conversationId,
+        proyecto: normalizedSummary.proyecto,
+        necesidad: normalizedSummary.necesidad,
+        problema: normalizedSummary.problema,
+        objetivo: normalizedSummary.objetivo,
+        solucion_sugerida: normalizedSummary.solucion_sugerida,
+        lead_score: normalizedSummary.lead_score,
+        estado: 'nuevo',
+        fecha: nowIso
+      })
+      .select('id, conversation_id, proyecto, necesidad, problema, objetivo, solucion_sugerida, lead_score, estado, fecha')
+      .single();
 
-      objetivo:
-        typeof summary.objetivo === 'string'
-          ? summary.objetivo.trim()
-          : null,
+    if (leadError || !createdLead) {
+      console.error('SUPABASE leads INSERT ERROR:', leadError);
+      throw new Error('No se pudo guardar el lead en Supabase.');
+    }
 
-      solucion_sugerida:
-        typeof summary.solucion_sugerida === 'string'
-          ? summary.solucion_sugerida.trim()
-          : null,
+    lead = createdLead;
+    leadCreated = true;
+    leadChanged = true;
+  } else {
+    leadChanged =
+      (existingLead.proyecto || null) !== normalizedSummary.proyecto ||
+      (existingLead.necesidad || null) !== normalizedSummary.necesidad ||
+      (existingLead.problema || null) !== normalizedSummary.problema ||
+      (existingLead.objetivo || null) !== normalizedSummary.objetivo ||
+      (existingLead.solucion_sugerida || null) !== normalizedSummary.solucion_sugerida ||
+      (existingLead.lead_score ?? null) !== normalizedSummary.lead_score;
 
-      lead_score:
-        typeof input.leadScore === 'number'
-          ? input.leadScore
-          : null,
+    if (leadChanged) {
+      const { data: updatedLead, error: leadUpdateError } = await supabase
+        .from('leads')
+        .update({
+          proyecto: normalizedSummary.proyecto,
+          necesidad: normalizedSummary.necesidad,
+          problema: normalizedSummary.problema,
+          objetivo: normalizedSummary.objetivo,
+          solucion_sugerida: normalizedSummary.solucion_sugerida,
+          lead_score: normalizedSummary.lead_score,
+          fecha: nowIso
+        })
+        .eq('id', existingLead.id)
+        .select('id, conversation_id, proyecto, necesidad, problema, objetivo, solucion_sugerida, lead_score, estado, fecha')
+        .single();
 
-      estado: 'nuevo',
-      fecha: nowIso
-    });
+      if (leadUpdateError || !updatedLead) {
+        console.error('SUPABASE leads UPDATE ERROR:', leadUpdateError);
+        throw new Error('No se pudo actualizar el lead en Supabase.');
+      }
 
-  if (leadError) {
-    console.error(
-      'SUPABASE leads INSERT ERROR:',
-      leadError
-    );
-
-    throw new Error(
-      'No se pudo guardar el lead en Supabase.'
-    );
+      lead = updatedLead;
+    }
   }
 
   // ==========================================================
-  // 3. CONTACTO
-  //
-  // SOLO si existe consentimiento explícito.
+  // 3. CONTACTO — UNO POR CONVERSACIÓN
   // ==========================================================
+  let contactChanged = false;
 
   if (
     input.consent === true &&
@@ -199,60 +272,83 @@ async function saveLeadPackage(input) {
   ) {
     const contact = input.contact;
 
-    const name =
-      typeof contact.name === 'string'
-        ? contact.name.trim()
-        : '';
-
-    const whatsapp =
-      typeof contact.whatsapp === 'string'
-        ? contact.whatsapp.trim()
-        : '';
-
-    const email =
-      typeof contact.email === 'string'
-        ? contact.email.trim()
-        : '';
+    const name = typeof contact.name === 'string' ? contact.name.trim() : '';
+    const whatsapp = typeof contact.whatsapp === 'string' ? contact.whatsapp.trim() : '';
+    const email = typeof contact.email === 'string' ? contact.email.trim() : '';
 
     if (name || whatsapp || email) {
       const {
-        error: contactError
+        data: existingContact,
+        error: existingContactError
       } = await supabase
         .from('contactos')
-        .insert({
-          conversation_id: conversationId,
+        .select('id, nombre, correo, whatsapp, consentimiento, consentimiento_fecha, version_politica, fecha')
+        .eq('conversation_id', conversationId)
+        .order('fecha', { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
-          nombre: name || null,
+      if (existingContactError) {
+        console.error('SUPABASE contactos LOOKUP ERROR:', existingContactError);
+        throw new Error('No se pudo consultar el contacto en Supabase.');
+      }
 
-          correo: email || null,
+      if (existingContact) {
+        contactChanged =
+          (existingContact.nombre || null) !== (name || null) ||
+          (existingContact.correo || null) !== (email || null) ||
+          (existingContact.whatsapp || null) !== (whatsapp || null);
 
-          whatsapp: whatsapp || null,
+        if (contactChanged) {
+          const { error: contactUpdateError } = await supabase
+            .from('contactos')
+            .update({
+              nombre: name || null,
+              correo: email || null,
+              whatsapp: whatsapp || null,
+              fecha: nowIso,
+              consentimiento: true,
+              consentimiento_fecha: existingContact.consentimiento_fecha || nowIso,
+              version_politica: input.policyVersion || existingContact.version_politica || null
+            })
+            .eq('id', existingContact.id);
 
-          fecha: nowIso,
+          if (contactUpdateError) {
+            console.error('SUPABASE contactos UPDATE ERROR:', contactUpdateError);
+            throw new Error('No se pudo actualizar el contacto en Supabase.');
+          }
+        }
+      } else {
+        const { error: contactError } = await supabase
+          .from('contactos')
+          .insert({
+            conversation_id: conversationId,
+            nombre: name || null,
+            correo: email || null,
+            whatsapp: whatsapp || null,
+            fecha: nowIso,
+            consentimiento: true,
+            consentimiento_fecha: nowIso,
+            version_politica: input.policyVersion || null
+          });
 
-          consentimiento: true,
+        if (contactError) {
+          console.error('SUPABASE contactos INSERT ERROR:', contactError);
+          throw new Error('No se pudo guardar el contacto en Supabase.');
+        }
 
-          consentimiento_fecha: nowIso,
-
-          version_politica:
-            input.policyVersion || null
-        });
-
-      if (contactError) {
-        console.error(
-          'SUPABASE contactos INSERT ERROR:',
-          contactError
-        );
-
-        throw new Error(
-          'No se pudo guardar el contacto en Supabase.'
-        );
+        contactChanged = true;
       }
     }
   }
 
   return {
-    conversationId
+    conversationId,
+    leadId: lead ? lead.id : null,
+    created: leadCreated,
+    updated: !leadCreated && leadChanged,
+    changed: leadChanged || contactChanged,
+    lead: lead || null
   };
 }
 
