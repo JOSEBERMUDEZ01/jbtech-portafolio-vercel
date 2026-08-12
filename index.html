@@ -864,6 +864,8 @@ footer{ padding:50px 0 40px; }
   text-align:left;
 }
 .jbai-chip:hover{ border-color:var(--signal); color:var(--signal); transform:translateY(-1px); }
+.jbai-chip.jbai-chip-selected{border-color:var(--signal);color:var(--signal);background:rgba(217,111,138,.10);box-shadow:0 0 0 1px rgba(217,111,138,.16) inset;}
+.jbai-quick-continue{margin-top:8px;}
 
 .jbai-footer{
   padding:12px 14px; border-top:1px solid var(--line); background:var(--ink);
@@ -1654,7 +1656,8 @@ footer{ padding:50px 0 40px; }
     .then(function(c){
       function professionalizeCopy(val){
         return String(val == null ? '' : val)
-          .replace(/\bfull[\s-]*stack\b/gi, 'desarrollador de software');
+          .replace(/\bfull[\s-]*stack\b/gi, 'desarrollador de software')
+          .replace(/\bdesarrollador\s+desarrollador\s+de\s+software\b/gi, 'desarrollador de software');
       }
       function setText(id, val){
         var el = document.getElementById(id);
@@ -1723,7 +1726,7 @@ footer{ padding:50px 0 40px; }
   var launcher=document.getElementById('jbaiLauncher'),panel=document.getElementById('jbaiPanel'),closeBtn=document.getElementById('jbaiClose'),body=document.getElementById('jbaiBody'),quick=document.getElementById('jbaiQuick'),input=document.getElementById('jbaiInput'),sendBtn=document.getElementById('jbaiSend');
   if(!launcher||!panel||!body)return;
   var CHAT_ENDPOINT='/api/chat',LEAD_ENDPOINT='/api/lead',REQUEST_TIMEOUT_MS=25000,MAX_HISTORY_TO_SEND=20,HISTORY_KEY='jbaiHistory',VISUAL_KEY='jbaiVisualLog',SESSION_KEY='jbaiSessionId';
-  var isOpen=false,isSending=false,conversationStarted=false,history=[],visualLog=[],currentController=null,lastFailedHistory=null;
+  var isOpen=false,isSending=false,conversationStarted=false,history=[],visualLog=[],currentController=null,lastFailedHistory=null,projectServices=[];
   var LEAD_SCORE_THRESHOLD=60,consentAsked=false,leadCaptured=false,leadContact=null,continuationAsked=false,leadFinalized=false;
   var QUICK_LABELS={idea:'💡 Tengo una idea',web:'🌐 Quiero una página web',tienda:'🛒 Quiero una tienda online',app:'📱 Quiero una aplicación',sistema:'⚙️ Necesito un sistema para mi negocio',nose:'🤔 No sé qué necesito',pregunta:'💻 Tengo una pregunta de programación',jose:'👨‍💻 Quiero conocer a José'};
 
@@ -1747,7 +1750,7 @@ footer{ padding:50px 0 40px; }
   function showThinking(){removeThinking();var w=document.createElement('div');w.className='jbai-thinking';w.id='jbaiThinking';var l=document.createElement('span');l.textContent='JB TECH AI está pensando…';var b=document.createElement('button');b.type='button';b.className='jbai-thinking-cancel';b.textContent='Cancelar';b.addEventListener('click',function(){if(currentController)currentController.abort();});w.appendChild(l);w.appendChild(b);body.appendChild(w);scrollToBottom();}
   function removeThinking(){var e=document.getElementById('jbaiThinking');if(e&&e.parentNode)e.parentNode.removeChild(e);}
   function showRetryButton(){var old=document.getElementById('jbaiRetry');if(old&&old.parentNode)old.parentNode.removeChild(old);var row=document.createElement('div');row.className='jbai-quick';row.id='jbaiRetry';var b=document.createElement('button');b.type='button';b.className='jbai-chip';b.textContent='↻ Reintentar';b.addEventListener('click',async function(){if(isSending||!lastFailedHistory)return;if(row.parentNode)row.parentNode.removeChild(row);await sendCurrentHistoryToBackend(lastFailedHistory);});row.appendChild(b);body.appendChild(row);scrollToBottom();}
-  function hideQuickChipsIfFirstMessage(){if(!conversationStarted&&quick){quick.style.display='none';conversationStarted=true;}}
+  function hideQuickChipsIfFirstMessage(){if(!conversationStarted&&quick){quick.style.display='none';conversationStarted=true;setTimeout(renderServicePicker,0);}}
   function setSendingState(s){isSending=s;if(sendBtn)sendBtn.disabled=s;if(input)input.disabled=s;}
   function friendlyErrorFor(status,msg){var internal=/chat\.js error|ai router|generativelanguage|api key|stack trace|this operation was aborted/i;if(msg&&!internal.test(String(msg)))return msg;if(status===429)return'Has alcanzado temporalmente el límite de mensajes. Inténtalo nuevamente en unos minutos.';if(status===400)return'No pudimos procesar ese mensaje. Intenta reformularlo.';if(status===502||status===503||status===504)return'El asistente está teniendo una demora temporal. Puedes reintentar en unos segundos.';return'El asistente no está disponible en este momento. Intenta de nuevo en unos segundos o escríbenos por WhatsApp.';}
   async function askBackend(snapshot){var controller=typeof AbortController!=='undefined'?new AbortController():null;currentController=controller;var timer=controller?setTimeout(function(){controller.abort();},REQUEST_TIMEOUT_MS):null;try{var r=await fetch(CHAT_ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:sessionId,messages:(snapshot||history).slice(-MAX_HISTORY_TO_SEND)}),signal:controller?controller.signal:undefined});var d=null;try{d=await r.json();}catch(e){}if(!r.ok||!d||d.ok!==true)return{ok:false,message:friendlyErrorFor(r.status,d&&d.message),status:r.status};return{ok:true,reply:d.reply,leadScore:d.meta&&typeof d.meta.leadScore==='number'?d.meta.leadScore:null};}catch(e){var a=e&&e.name==='AbortError';return{ok:false,cancelled:a,message:a?'La solicitud fue cancelada.':'No pudimos conectar con el asistente. Verifica tu conexión e inténtalo nuevamente.'};}finally{if(timer)clearTimeout(timer);if(currentController===controller)currentController=null;}}
@@ -1755,6 +1758,7 @@ footer{ padding:50px 0 40px; }
   async function submitUserMessage(text){
     if(!text||isSending)return;
     hideQuickChipsIfFirstMessage();
+    detectProjectServices(text);
     if(leadFinalized){leadFinalized=false;persistState();}
     userSay(text);
     if(leadCaptured&&isCompletionIntent(text)){
@@ -1767,7 +1771,7 @@ footer{ padding:50px 0 40px; }
 
   function showConsentPrompt(){if(leadCaptured)return;botSay('Para poder dar seguimiento a tu proyecto necesitamos algunos datos de contacto. Antes de continuar, ¿autorizas a JB TECH a tratar la información que compartas para atender tu solicitud y contactarte sobre el proyecto?');var row=document.createElement('div');row.className='jbai-quick';row.style.marginTop='2px';var link=document.createElement('a');link.className='jbai-chip';link.href='/politica-privacidad.html';link.target='_blank';link.rel='noopener';link.textContent='📄 Consultar política de privacidad';var yes=document.createElement('button');yes.type='button';yes.className='jbai-chip';yes.textContent='✅ Autorizo el tratamiento de mis datos';var no=document.createElement('button');no.type='button';no.className='jbai-chip';no.textContent='❌ No autorizo';row.appendChild(link);row.appendChild(yes);row.appendChild(no);body.appendChild(row);scrollToBottom();function cleanup(){if(row.parentNode)row.parentNode.removeChild(row);}yes.addEventListener('click',function(){cleanup();userSay('✅ Autorizo el tratamiento de mis datos');showContactForm();});no.addEventListener('click',function(){cleanup();userSay('❌ No autorizo');botSay('Está bien. Podemos continuar sin recopilar esos datos.');});}
 
-  function injectContactStyles(){if(document.getElementById('jbaiEnhancedStyles'))return;var style=document.createElement('style');style.id='jbaiEnhancedStyles';style.textContent=".jbai-contact-method{display:flex;gap:7px;margin-bottom:8px;flex-wrap:wrap}.jbai-contact-method button{flex:1;min-width:110px}.jbai-phone-grid{display:grid;grid-template-columns:minmax(145px,1.5fr) 82px minmax(110px,1fr);gap:7px;width:100%;margin-bottom:7px}.jbai-phone-grid .jbai-input{min-width:0}.jbai-phone-preview{font-size:12px;opacity:.75;margin:2px 0 8px;padding-left:2px}.jbai-thinking{display:flex;align-items:center;justify-content:space-between;gap:10px;align-self:flex-start;margin:8px 0;padding:9px 12px;border:1px solid rgba(128,128,128,.25);border-radius:12px;font-size:12px;opacity:.9}.jbai-thinking-cancel{border:1px solid rgba(128,128,128,.35);background:transparent;border-radius:8px;padding:5px 9px;cursor:pointer;font:inherit}.jbai-thinking-cancel:hover{transform:translateY(-1px)}@media(max-width:520px){.jbai-phone-grid{grid-template-columns:1fr 76px 1.2fr}}";document.head.appendChild(style);}
+  function injectContactStyles(){if(document.getElementById('jbaiEnhancedStyles'))return;var style=document.createElement('style');style.id='jbaiEnhancedStyles';style.textContent=".jbai-contact-method{display:flex;gap:7px;margin-bottom:8px;flex-wrap:wrap}.jbai-contact-method button{flex:1;min-width:110px}.jbai-phone-grid{display:flex;flex-direction:column;gap:7px;width:100%;margin-bottom:7px}.jbai-phone-grid .jbai-input{width:100%;min-width:0}.jbai-phone-grid select,.jbai-phone-grid input{width:100%;box-sizing:border-box}.jbai-phone-preview{font-size:12px;opacity:.75;margin:2px 0 8px;padding-left:2px}.jbai-thinking{display:flex;align-items:center;justify-content:space-between;gap:10px;align-self:flex-start;margin:8px 0;padding:9px 12px;border:1px solid rgba(128,128,128,.25);border-radius:12px;font-size:12px;opacity:.9}.jbai-thinking-cancel{border:1px solid rgba(128,128,128,.35);background:transparent;border-radius:8px;padding:5px 9px;cursor:pointer;font:inherit}.jbai-thinking-cancel:hover{transform:translateY(-1px)}@media(max-width:520px){.jbai-phone-grid{display:flex;flex-direction:column}}";document.head.appendChild(style);}
   function normalizeDialCode(v){var r=String(v||'').trim().replace(/[^0-9+]/g,'');if(!r)return'';if(r.charAt(0)!=='+')r='+'+r;return'+'+r.slice(1).replace(/\+/g,'');}
   function normalizePhone(v){return String(v||'').replace(/\D/g,'');}
   function buildInternational(dial,phone){var d=normalizeDialCode(dial),p=normalizePhone(phone);if(!d||!p)return'';var dg=d.slice(1);if(p.indexOf(dg)===0&&p.length>dg.length)p=p.slice(dg.length);return d+p;}
@@ -1815,10 +1819,70 @@ footer{ padding:50px 0 40px; }
 
   async function sendLead(contact,isUpdate,finalize,botCheck){try{var r=await fetch(LEAD_ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:sessionId,consent:true,contact:contact,update:isUpdate===true,finalize:finalize===true,botCheck:botCheck||null})});var d=null;try{d=await r.json();}catch(e){}if(!r.ok||!d||d.ok!==true)return{ok:false,stored:false,finalized:false,notified:{email:false,whatsapp:false}};return d;}catch(e){return{ok:false,stored:false,finalized:false,notified:{email:false,whatsapp:false}};}}
 
-  function restoreState(){try{var h=sessionStorage.getItem(HISTORY_KEY),v=sessionStorage.getItem(VISUAL_KEY),l=sessionStorage.getItem('jbaiLeadState');if(h){var ph=JSON.parse(h);if(Array.isArray(ph))history=ph.filter(function(x){return x&&x.role&&(x.role==='user'||x.role==='assistant')&&typeof x.content==='string';});}if(v){var pv=JSON.parse(v);if(Array.isArray(pv))visualLog=pv.filter(function(x){return x&&(x.who==='user'||x.who==='bot')&&typeof x.text==='string';});}if(l){var pl=JSON.parse(l);consentAsked=!!pl.consentAsked;leadCaptured=!!pl.leadCaptured;continuationAsked=!!pl.continuationAsked;leadFinalized=!!pl.leadFinalized;leadContact=null;}}catch(e){}}
+  function restoreState(){try{var h=sessionStorage.getItem(HISTORY_KEY),v=sessionStorage.getItem(VISUAL_KEY),l=sessionStorage.getItem('jbaiLeadState'),ps=sessionStorage.getItem('jbaiProjectServices');if(h){var ph=JSON.parse(h);if(Array.isArray(ph))history=ph.filter(function(x){return x&&x.role&&(x.role==='user'||x.role==='assistant')&&typeof x.content==='string';});}if(v){var pv=JSON.parse(v);if(Array.isArray(pv))visualLog=pv.filter(function(x){return x&&(x.who==='user'||x.who==='bot')&&typeof x.text==='string';});}if(l){var pl=JSON.parse(l);consentAsked=!!pl.consentAsked;leadCaptured=!!pl.leadCaptured;continuationAsked=!!pl.continuationAsked;leadFinalized=!!pl.leadFinalized;leadContact=null;}if(ps){var pp=JSON.parse(ps);if(Array.isArray(pp))projectServices=pp.filter(function(x){return typeof x==='string';});}}catch(e){}}
   restoreState();injectContactStyles();
   if(visualLog.length){var old=body.querySelectorAll('.jbai-msg');for(var z=old.length-1;z>=0;z--){if(old[z]&&old[z].parentNode)old[z].parentNode.removeChild(old[z]);}visualLog.forEach(function(x){addMessage(x.text,x.who,{skipVisualLog:true,skipHistory:true});});conversationStarted=true;if(quick)quick.style.display='none';}
-  if(quick)quick.addEventListener('click',function(e){var b=e.target.closest('[data-jbai-quick]');if(!b||isSending)return;var k=b.getAttribute('data-jbai-quick');submitUserMessage(QUICK_LABELS[k]||b.textContent);});
+  var selectedQuickOptions=[];
+  // Necesidades acumuladas durante toda la conversación. Nunca reemplaza una opción anterior.
+  var SERVICE_DEFINITIONS=[
+    {key:'web',label:'Página web',re:/\b(p[aá]gina|sitio|web)\b/i},
+    {key:'tienda',label:'Tienda online',re:/\b(tienda|ecommerce|e-commerce|carrito|cat[aá]logo con compras)\b/i},
+    {key:'app',label:'Aplicación',re:/\b(app|aplicaci[oó]n(?:es)?(?: m[oó]vil(?:es)?)?)\b/i},
+    {key:'sistema',label:'Sistema para negocio',re:/\b(sistema|software para mi negocio|sistema administrativo)\b/i},
+    {key:'ia',label:'IA / Automatización',re:/\b(inteligencia artificial|\bia\b|automatizaci[oó]n|chatbot|asistente virtual)\b/i}
+  ];
+  function detectProjectServices(text){
+    var t=String(text||'');
+    SERVICE_DEFINITIONS.forEach(function(def){if(def.re.test(t)&&projectServices.indexOf(def.key)===-1)projectServices.push(def.key);});
+    try{sessionStorage.setItem('jbaiProjectServices',JSON.stringify(projectServices));}catch(e){}
+  }
+  function projectServicesText(){return projectServices.map(function(k){for(var i=0;i<SERVICE_DEFINITIONS.length;i++)if(SERVICE_DEFINITIONS[i].key===k)return SERVICE_DEFINITIONS[i].label;return '';}).filter(Boolean).join(', ');}
+  function renderServicePicker(){
+    if(!body||!conversationStarted||document.getElementById('jbaiServicePicker'))return;
+    var row=document.createElement('div');row.className='jbai-quick';row.id='jbaiServicePicker';row.style.marginTop='6px';
+    var b=document.createElement('button');b.type='button';b.className='jbai-chip';b.textContent='➕ Agregar otro servicio';b.addEventListener('click',showServicePicker);row.appendChild(b);body.appendChild(row);
+  }
+  function showServicePicker(){
+    var old=document.getElementById('jbaiServicePickerOptions');if(old&&old.parentNode)old.parentNode.removeChild(old);
+    var row=document.createElement('div');row.className='jbai-quick';row.id='jbaiServicePickerOptions';row.style.marginTop='2px';
+    ['web','tienda','app','sistema','ia'].forEach(function(k){
+      var def=SERVICE_DEFINITIONS.find(function(x){return x.key===k;});if(!def)return;
+      var b=document.createElement('button');b.type='button';b.className='jbai-chip'+(projectServices.indexOf(k)>-1?' jbai-chip-selected':'');b.textContent=def.label;b.setAttribute('aria-pressed',projectServices.indexOf(k)>-1?'true':'false');
+      b.addEventListener('click',function(){if(projectServices.indexOf(k)===-1){projectServices.push(k);}else{projectServices=projectServices.filter(function(x){return x!==k;});}b.classList.toggle('jbai-chip-selected',projectServices.indexOf(k)>-1);b.setAttribute('aria-pressed',projectServices.indexOf(k)>-1?'true':'false');try{sessionStorage.setItem('jbaiProjectServices',JSON.stringify(projectServices));}catch(e){}});row.appendChild(b);
+    });
+    var done=document.createElement('button');done.type='button';done.className='jbai-chip';done.textContent='✓ Continuar';done.addEventListener('click',function(){if(row.parentNode)row.parentNode.removeChild(row);if(projectServices.length){userSay('También necesito: '+projectServicesText()+'.',{historyText:'El cliente indicó que su proyecto incluye: '+projectServicesText()+'. Mantener estas necesidades acumuladas sin reemplazar las anteriores.'});botSay('Perfecto. Mantendré esas necesidades dentro del mismo proyecto y seguiré haciendo preguntas teniendo en cuenta todo lo que ya me contaste.');}});row.appendChild(done);body.appendChild(row);scrollToBottom();
+  }
+  function renderQuickContinue(){
+    if(!quick)return;
+    var old=quick.querySelector('.jbai-quick-continue');
+    if(old&&old.parentNode)old.parentNode.removeChild(old);
+    if(!selectedQuickOptions.length)return;
+    var row=document.createElement('div');row.className='jbai-quick jbai-quick-continue';
+    var b=document.createElement('button');b.type='button';b.className='jbai-chip';b.textContent='Continuar con '+selectedQuickOptions.length+' opción'+(selectedQuickOptions.length===1?'':'es')+' →';
+    b.addEventListener('click',function(){
+      if(isSending||!selectedQuickOptions.length)return;
+      var typed=(input&&input.value||'').trim();
+      var labels=selectedQuickOptions.map(function(k){return QUICK_LABELS[k]||'';}).filter(Boolean);
+      var message=labels.join(' + ')+(typed?'\n'+typed:'');
+      selectedQuickOptions=[];
+      quick.querySelectorAll('[data-jbai-quick]').forEach(function(x){x.classList.remove('jbai-chip-selected');x.setAttribute('aria-pressed','false');});
+      if(input){input.value='';autoGrow();}
+      renderQuickContinue();
+      submitUserMessage(message);
+    });
+    row.appendChild(b);quick.appendChild(row);
+  }
+  if(quick)quick.addEventListener('click',function(e){
+    var b=e.target.closest('[data-jbai-quick]');
+    if(!b||isSending)return;
+    e.preventDefault();
+    var k=b.getAttribute('data-jbai-quick');
+    if(selectedQuickOptions.indexOf(k)===-1){selectedQuickOptions.push(k);b.classList.add('jbai-chip-selected');b.setAttribute('aria-pressed','true');}
+    else{selectedQuickOptions=selectedQuickOptions.filter(function(x){return x!==k;});b.classList.remove('jbai-chip-selected');b.setAttribute('aria-pressed','false');}
+    renderQuickContinue();
+    if(input)input.focus();
+  });
+  if(quick)quick.querySelectorAll('[data-jbai-quick]').forEach(function(b){b.setAttribute('aria-pressed','false');});
   function autoGrow(){if(!input)return;input.style.height='auto';input.style.height=Math.min(input.scrollHeight,90)+'px';}if(input)input.addEventListener('input',autoGrow);
   function sendMessage(){if(isSending)return;var t=(input.value||'').trim();if(!t)return;input.value='';autoGrow();submitUserMessage(t);}if(sendBtn)sendBtn.addEventListener('click',sendMessage);if(input)input.addEventListener('keydown',function(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();}});
 })();
