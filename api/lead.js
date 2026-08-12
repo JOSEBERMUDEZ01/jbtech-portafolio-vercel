@@ -30,10 +30,14 @@
 const { kv } = require('@vercel/kv');
 const db = require('./_lib/db.js');
 const notify = require('./_lib/notify.js');
+const crypto = require('crypto');
 
 const CONFIG = {
   MAX_REQUESTS_PER_IP: 10,
+  MAX_REQUESTS_PER_SESSION: 6,
   IP_WINDOW_MS: 60 * 60 * 1000,
+  MIN_FORM_TIME_MS: 1800,
+  MAX_BODY_BYTES: 32 * 1024,
   SESSION_ID_REGEX: /^[a-zA-Z0-9_-]{8,64}$/,
   MAX_NAME_LENGTH: 100,
   MAX_CONTACT_LENGTH: 100,
@@ -42,6 +46,12 @@ const CONFIG = {
 
 function fail(res, status, message) {
   return res.status(status).json({ error: true, message: message });
+}
+
+function setSecurityHeaders(res) {
+  res.setHeader('Cache-Control', 'no-store, max-age=0');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
 }
 
 function getClientIp(req) {
@@ -65,6 +75,7 @@ async function checkAndBumpLimit(key, max, windowMs) {
 }
 
 module.exports = async function handler(req, res) {
+  setSecurityHeaders(res);
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
     return fail(res, 405, 'Método no permitido.');
@@ -77,6 +88,13 @@ module.exports = async function handler(req, res) {
     }
 
     const body = req.body;
+    try {
+      if (Buffer.byteLength(JSON.stringify(body || {}), 'utf8') > CONFIG.MAX_BODY_BYTES) {
+        return fail(res, 413, 'Solicitud demasiado grande.');
+      }
+    } catch (e) {
+      return fail(res, 400, 'Formato de solicitud inválido.');
+    }
     if (!body || typeof body !== 'object' || Array.isArray(body)) {
       return fail(res, 400, 'Formato de solicitud inválido.');
     }
@@ -88,18 +106,22 @@ module.exports = async function handler(req, res) {
 
     const consent = body.consent === true;
     const isUpdate = body.update === true;
+    const finalize = body.finalize === true;
 
     let contact = null;
+    const botCheck = (body && typeof body.botCheck === 'object' && body.botCheck) || {};
     if (consent) {
       const c = (body && typeof body.contact === 'object' && body.contact) || {};
       const name = typeof c.name === 'string' ? c.name.trim().slice(0, CONFIG.MAX_NAME_LENGTH) : '';
       const whatsapp = typeof c.whatsapp === 'string' ? c.whatsapp.trim().slice(0, CONFIG.MAX_CONTACT_LENGTH) : '';
       const email = typeof c.email === 'string' ? c.email.trim().slice(0, CONFIG.MAX_CONTACT_LENGTH) : '';
 
-      if (!name || (!whatsapp && !email)) {
+      // En el primer guardado exigimos contacto. En una finalización posterior
+      // el contacto se recupera desde Supabase para no mantener PII en el navegador.
+      if (!finalize && (!name || (!whatsapp && !email))) {
         return fail(res, 400, 'Para continuar necesitamos al menos tu nombre y un WhatsApp o correo.');
       }
-      contact = { name: name, whatsapp: whatsapp, email: email };
+      if (name || whatsapp || email) contact = { name: name, whatsapp: whatsapp, email: email };
     }
 
     // ------------------------------------------------------
@@ -110,6 +132,20 @@ module.exports = async function handler(req, res) {
     const ipLimit = await checkAndBumpLimit('lead:ip:' + ip, CONFIG.MAX_REQUESTS_PER_IP, CONFIG.IP_WINDOW_MS);
     if (!ipLimit.allowed) {
       return fail(res, 429, 'Has alcanzado temporalmente el límite de solicitudes. Inténtalo más tarde.');
+    }
+
+    const sessionLimit = await checkAndBumpLimit('lead:session:' + sessionId, CONFIG.MAX_REQUESTS_PER_SESSION, CONFIG.IP_WINDOW_MS);
+    if (!sessionLimit.allowed) {
+      return fail(res, 429, 'Esta sesión alcanzó temporalmente el límite de solicitudes. Inténtalo más tarde.');
+    }
+
+    // Honeypot + tiempo mínimo: frena bots simples sin introducir CAPTCHA.
+    if (!isUpdate && !finalize && consent) {
+      const honeypot = typeof botCheck.website === 'string' ? botCheck.website.trim() : '';
+      const startedAt = Number(botCheck.formStartedAt);
+      if (honeypot || !Number.isFinite(startedAt) || (Date.now() - startedAt) < CONFIG.MIN_FORM_TIME_MS || (Date.now() - startedAt) > 30 * 60 * 1000) {
+        return fail(res, 400, 'No pudimos validar el formulario. Inténtalo nuevamente.');
+      }
     }
 
     // ------------------------------------------------------
@@ -130,6 +166,21 @@ module.exports = async function handler(req, res) {
       // insiste ni se bloquea la conversación (eso lo maneja el
       // widget); aquí solo se confirma que no hubo persistencia.
       return res.status(200).json({ ok: true, stored: false });
+    }
+
+    // ------------------------------------------------------
+    // Si se está finalizando después de una recarga, recuperar el
+    // contacto desde Supabase en vez de pedir/guardar PII en el cliente.
+    // ------------------------------------------------------
+    if (consent && finalize && !contact) {
+      try {
+        contact = await db.getContactBySessionId(sessionId);
+      } catch (contactErr) {
+        console.log('lead.js error recuperando contacto:', contactErr && contactErr.message);
+      }
+      if (!contact || (!contact.name && !contact.whatsapp && !contact.email)) {
+        return fail(res, 409, 'No encontramos los datos de contacto de esta sesión.');
+      }
     }
 
     // ------------------------------------------------------
@@ -172,28 +223,62 @@ module.exports = async function handler(req, res) {
 
     let emailResult = { ok: false };
     let waResult = { ok: false };
+    let finalized = false;
 
-    if (changed) {
-      const eventType = created ? 'new' : 'update';
-      const emailHtml = notify.buildLeadEmailHtml({
+    // No notificamos durante la conversación. Solo al finalizar explícitamente.
+    if (finalize && stored) {
+      const fingerprint = crypto.createHash('sha256').update(JSON.stringify({
         contact: contact,
-        summary: summary,
-        leadScore: leadScore,
-        stored: stored,
-        eventType: eventType
-      });
-      const subject = created
-        ? 'Nuevo lead — JB TECH AI: ' + contact.name
-        : 'Actualización de lead — JB TECH AI: ' + contact.name;
-      emailResult = await notify.sendEmailNotification(subject, emailHtml);
+        summary: summary || null,
+        leadScore: leadScore
+      })).digest('hex');
+      const notificationKey = 'lead:notification:' + sessionId;
+      let notificationState = null;
+      try { notificationState = await kv.get(notificationKey); } catch (e) { notificationState = null; }
+      const previousWasFinalized = !!(notificationState && typeof notificationState === 'object' && notificationState.wasEverFinalized);
+      if (!notificationState || typeof notificationState !== 'object' || notificationState.fingerprint !== fingerprint) {
+        notificationState = { fingerprint: fingerprint, email: false, whatsapp: false, wasEverFinalized: previousWasFinalized };
+      }
 
-      const waText = notify.buildWhatsAppText({
-        contact: contact,
-        summary: summary,
-        leadScore: leadScore,
-        eventType: eventType
-      });
-      waResult = await notify.sendWhatsAppNotification(waText);
+      const eventType = notificationState.wasEverFinalized ? 'update' : 'new';
+      if (!notificationState.email) {
+        const emailHtml = notify.buildLeadEmailHtml({
+          contact: contact,
+          summary: summary,
+          leadScore: leadScore,
+          stored: stored,
+          eventType: eventType
+        });
+        const subject = eventType === 'new'
+          ? 'Nuevo lead — JB TECH AI: ' + contact.name
+          : 'Actualización de lead — JB TECH AI: ' + contact.name;
+        emailResult = await notify.sendEmailNotification(subject, emailHtml);
+        if (emailResult.ok) notificationState.email = true;
+      } else {
+        emailResult = { ok: true, duplicate: true };
+      }
+
+      if (!notificationState.whatsapp) {
+        const waText = notify.buildWhatsAppText({
+          contact: contact,
+          summary: summary,
+          leadScore: leadScore,
+          eventType: eventType
+        });
+        waResult = await notify.sendWhatsAppNotification(waText);
+        if (waResult.ok) notificationState.whatsapp = true;
+      } else {
+        waResult = { ok: true, duplicate: true };
+      }
+
+      if (notificationState.email && notificationState.whatsapp) {
+        notificationState.wasEverFinalized = true;
+        finalized = true;
+        try { await kv.set(notificationKey, notificationState); } catch (e) {}
+      } else {
+        finalized = false;
+        try { await kv.set(notificationKey, notificationState); } catch (e) {}
+      }
     }
 
     return res.status(200).json({
@@ -202,6 +287,7 @@ module.exports = async function handler(req, res) {
       created: created,
       updated: updated,
       changed: changed,
+      finalized: finalized,
       notified: { email: emailResult.ok, whatsapp: waResult.ok }
     });
   } catch (err) {
