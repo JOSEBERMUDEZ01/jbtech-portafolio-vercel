@@ -19,6 +19,9 @@
 //
 //      SUPABASE_URL
 //      SUPABASE_SECRET_KEY
+//
+// Se conserva exactamente SUPABASE_SECRET_KEY porque es la variable
+// que ya utiliza el proyecto en producción. No se cambia el contrato.
 // ============================================================
 
 const { createClient } = require('@supabase/supabase-js');
