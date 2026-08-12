@@ -334,6 +334,8 @@ html[data-theme="dark"] .theme-toggle .icon-moon{ display:block; }
   font-family:var(--font-mono); font-size:.78rem; color:var(--muted);
 }
 .hero-meta b{ color:var(--paper); display:block; font-family:var(--font-display); font-size:1.3rem; }
+.hero-meta .stat-prefix{ display:inline; margin-right:1px; }
+.hero-meta .counter{ display:inline; }
 
 /* Línea de tiempo del proceso, dentro del hero */
 .hero-timeline{
@@ -410,11 +412,11 @@ html[data-theme="dark"] .theme-toggle .icon-moon{ display:block; }
 .tech-chips .tech-chip{
   position:relative; overflow:hidden; cursor:default;
   background:rgba(255,255,255,.18);
-  transform:translateY(0);
-  opacity:0;
-  animation:techChipIn .65s cubic-bezier(.22,1,.36,1) forwards;
-  animation-delay:calc(var(--tech-index, 0) * 70ms);
+  transform:translateY(0); opacity:0;
+  animation:techChipIn .65s cubic-bezier(.22,1,.36,1) forwards, techChipFloat 4.8s ease-in-out infinite;
+  animation-delay:calc(var(--tech-index, 0) * 70ms), calc(.35s + var(--tech-index, 0) * 180ms);
   transition:transform .28s ease, border-color .28s ease, color .28s ease, box-shadow .28s ease, background .28s ease;
+  will-change:transform;
 }
 .tech-chips .tech-chip:nth-child(1){--tech-index:0}.tech-chips .tech-chip:nth-child(2){--tech-index:1}.tech-chips .tech-chip:nth-child(3){--tech-index:2}.tech-chips .tech-chip:nth-child(4){--tech-index:3}.tech-chips .tech-chip:nth-child(5){--tech-index:4}.tech-chips .tech-chip:nth-child(6){--tech-index:5}.tech-chips .tech-chip:nth-child(7){--tech-index:6}.tech-chips .tech-chip:nth-child(8){--tech-index:7}
 .tech-chips .tech-chip::after{
@@ -423,13 +425,14 @@ html[data-theme="dark"] .theme-toggle .icon-moon{ display:block; }
   transition:transform .55s ease; pointer-events:none;
 }
 .tech-chips .tech-chip:hover{
-  transform:translateY(-3px); color:var(--paper); border-color:var(--signal);
+  animation-play-state:paused; transform:translateY(-4px) scale(1.02); color:var(--paper); border-color:var(--signal);
   background:var(--signal-soft); box-shadow:0 8px 22px rgba(155,34,66,.10);
 }
 .tech-chips .tech-chip:hover::after{transform:translateX(120%)}
 @keyframes techChipIn{from{opacity:0;transform:translateY(8px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes techChipFloat{0%,100%{translate:0 0}50%{translate:0 -5px}}
 @media (prefers-reduced-motion:reduce){
-  .tech-chips .tech-chip{animation:none;opacity:1;transition:none}
+  .tech-chips .tech-chip{animation:none;opacity:1;transition:none;translate:none}
   .tech-chips .tech-chip::after{display:none}
 }
 
@@ -1002,9 +1005,9 @@ footer{ padding:50px 0 40px; }
         <a href="#proceso" class="btn btn-ghost">Cómo trabajo</a>
       </div>
       <div class="hero-meta">
-        <div><b class="counter" data-target="6">0</b>meses construyendo software</div>
-        <div><b class="counter" data-target="4">0</b>proyectos entregados</div>
-        <div><b class="counter" data-target="2">0</b>meses documentando ERS</div>
+        <div><b class="stat-prefix">+</b><b class="counter" data-target="6">0</b>meses construyendo software</div>
+        <div><b class="stat-prefix">+</b><b class="counter" data-target="4">0</b>proyectos entregados</div>
+        <div><b class="stat-prefix">+</b><b class="counter" data-target="2">0</b>meses documentando ERS</div>
       </div>
     </div>
 
@@ -1286,10 +1289,6 @@ footer{ padding:50px 0 40px; }
       <h2>Hablemos de tu proyecto.</h2>
       <p id="ck-contact-tagline">Cuéntame qué necesitas construir. Respondo directo, sin intermediarios ni plantillas de venta.</p>
 
-      <div class="contact-line">
-        <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z"/></svg></span>
-        <span id="ck-contact-whatsapp">WhatsApp: +57 302 352 8086</span>
-      </div>
       <div class="contact-line">
         <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20 15 15 0 0 1 0-20Z"/></svg></span>
         <span id="ck-contact-location">Soluciones digitales pensadas para tu negocio</span>
