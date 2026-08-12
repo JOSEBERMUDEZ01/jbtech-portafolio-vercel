@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Panel admin · JB Tech</title>
+<title>Administración · JB Tech</title>
 <meta name="robots" content="noindex, nofollow">
 <style>
 :root{
@@ -77,7 +77,7 @@ button{font-family:inherit;cursor:pointer;border:none;border-radius:8px;padding:
 <div id="loginScreen">
   <span class="eyebrow" style="text-align:center">JB Tech</span>
   <h1>Panel de administración</h1>
-  <p class="sub">Ingresa tus datos para administrar JB TECH.</p>
+  <p class="sub">Gestiona el contenido público de JB Tech y el seguimiento de solicitudes de JB TECH AI.</p>
   <label>Usuario</label>
   <input type="text" id="loginUser" autocomplete="username">
   <label>Contraseña</label>
@@ -89,14 +89,14 @@ button{font-family:inherit;cursor:pointer;border:none;border-radius:8px;padding:
 <div class="wrap" id="panel">
   <div class="top-bar">
     <div>
-      <span class="eyebrow">JB Tech · Panel admin</span>
-      <h1 id="panelTitle">Contenido del sitio</h1>
+      <span class="eyebrow">JB Tech · Administración</span>
+      <h1 id="panelTitle">Sitio web</h1>
     </div>
     <button class="btn-ghost" onclick="logout()">Salir</button>
   </div>
 
   <div class="tabs">
-    <button type="button" class="tab-btn active" id="tabBtnContenido" onclick="switchTab('contenido')">Contenido del sitio</button>
+    <button type="button" class="tab-btn active" id="tabBtnContenido" onclick="switchTab('contenido')">Sitio web</button>
     <button type="button" class="tab-btn" id="tabBtnDashboard" onclick="switchTab('dashboard')">Dashboard</button>
     <button type="button" class="tab-btn" id="tabBtnSolicitudes" onclick="switchTab('solicitudes')">Solicitudes</button>
     <button type="button" class="tab-btn" id="tabBtnContactos" onclick="switchTab('contactos')">Contactos</button>
@@ -106,32 +106,32 @@ button{font-family:inherit;cursor:pointer;border:none;border-radius:8px;padding:
 
   <div id="tabContenido">
     <div class="card">
-      <h2>Inicio (hero)</h2>
-      <label>Texto pequeño de arriba (eyebrow)</label>
+      <h2>Inicio — Presentación</h2>
+      <label>Texto superior</label>
       <input type="text" id="hero_eyebrow">
       <label>Título principal</label>
       <textarea id="hero_title"></textarea>
-      <p class="sub" style="margin:-10px 0 16px">Puedes usar &lt;span class="accent"&gt;texto&lt;/span&gt; para resaltar palabras.</p>
-      <label>Frase debajo del título</label>
+      <p class="sub" style="margin:-10px 0 16px">Puedes usar &lt;span class="accent"&gt;texto&lt;/span&gt; para mantener el resaltado visual del sitio.</p>
+      <label>Propuesta principal</label>
       <textarea id="hero_tagline"></textarea>
-      <label>Párrafo de presentación</label>
+      <label>Descripción de la propuesta</label>
       <textarea id="hero_sub"></textarea>
     </div>
 
     <div class="card">
       <h2>Sobre mí</h2>
-      <label>Título</label>
+      <label>Título de la sección</label>
       <input type="text" id="about_title">
-      <label>Texto de presentación</label>
+      <label>Descripción de la sección</label>
       <textarea id="about_p1" style="min-height:140px"></textarea>
       <p class="sub" style="margin:0">Puedes usar &lt;strong&gt;texto&lt;/strong&gt; para resaltar palabras.</p>
     </div>
 
     <div class="card">
       <h2>Contacto</h2>
-      <label>Frase de la sección de contacto</label>
+      <label>Mensaje de contacto</label>
       <textarea id="contact_tagline"></textarea>
-      <label>WhatsApp (texto que se muestra)</label>
+      <label>WhatsApp visible en el sitio</label>
       <input type="text" id="contact_whatsapp">
       <label>Ubicación</label>
       <input type="text" id="contact_location">
@@ -140,11 +140,18 @@ button{font-family:inherit;cursor:pointer;border:none;border-radius:8px;padding:
     </div>
 
     <div class="card">
-      <div class="top-bar" style="margin-bottom:18px">
-        <h2 style="margin:0">Otros proyectos</h2>
+      <div class="top-bar" style="margin-bottom:8px">
+        <div><h2 style="margin:0">Más proyectos</h2><p class="sub" style="margin:4px 0 0">Productos ya en producción.</p></div>
         <button class="btn-ghost" onclick="addProject()">+ Agregar proyecto</button>
       </div>
       <div id="projectsList"></div>
+    </div>
+
+    <div class="card">
+      <h2>Referencia del sitio</h2>
+      <p class="sub" style="margin-bottom:12px">La página pública actual se presenta como <strong>JB Tech</strong>: desarrollo de software y soluciones web.</p>
+      <div class="project-item" style="margin-bottom:10px"><b>Proceso</b><div class="sub" style="margin:5px 0 0">Análisis · ERS · Diseño · Desarrollo · Pruebas · Implementación · Soporte</div></div>
+      <div class="project-item" style="margin-bottom:0"><b>Servicios</b><div class="sub" style="margin:5px 0 0">Plataformas web a la medida · Progressive Web Apps · E-commerce y ventas por WhatsApp · Documentación técnica y ERS · SEO y posicionamiento</div></div>
     </div>
     <div style="height:70px"></div>
   </div>
@@ -211,7 +218,7 @@ const ESTADO_LABELS = {
   cerrado:'Cerrado', descartado:'Descartado'
 };
 const PANEL_TITLES = {
-  contenido:'Contenido del sitio', dashboard:'Dashboard',
+  contenido:'Sitio web', dashboard:'Resumen',
   solicitudes:'Solicitudes', contactos:'Contactos'
 };
 const tabLoaded = {dashboard:false,solicitudes:false,contactos:false};
@@ -361,15 +368,15 @@ function buildProjectCard(p,i){
     '<div class="img-preview" id="imgPreview'+i+'">'+
       (p.image?'<img src="'+escAttr(p.image)+'" alt="">':'Sin imagen')+
     '</div>'+
-    '<label>Imagen del proyecto</label>'+
+    '<label>Imagen del proyecto · aparece en «Más proyectos»</label>'+
     '<input type="file" accept="image/*" onchange="uploadProjectImage(event,'+i+')">'+
     '<label>Nombre</label>'+
     '<input type="text" value="'+escAttr(p.name)+'" onchange="updateProject('+i+',\'name\',this.value)">'+
-    '<label>Etiqueta (ej: PWA · E-COMMERCE)</label>'+
+    '<label>Etiqueta del proyecto</label>'+
     '<input type="text" value="'+escAttr(p.tag)+'" onchange="updateProject('+i+',\'tag\',this.value)">'+
-    '<label>Descripción</label>'+
+    '<label>Descripción del proyecto</label>'+
     '<textarea onchange="updateProject('+i+',\'description\',this.value)">'+escHtml(p.description)+'</textarea>'+
-    '<label>Link del sitio</label>'+
+    '<label>Enlace del proyecto</label>'+
     '<input type="text" value="'+escAttr(p.link)+'" onchange="updateProject('+i+',\'link\',this.value)">';
   return div;
 }
@@ -408,13 +415,21 @@ async function uploadProjectImage(event,i){
     });
     let result=null;try{result=await res.json()}catch(e){}
     if(!res.ok){
-      preview.textContent='Error: '+(result?.error||result?.message||'no se pudo subir');
+      const message=result?.error||result?.message||'No se pudo subir la imagen.';
+      preview.textContent='Error: '+message;
+      showStatus(message,true);
+      return;
+    }
+    if(!result?.url){
+      preview.textContent='Error: el servidor no devolvió la URL de la imagen.';
+      showStatus('La imagen se procesó, pero no se recibió una URL válida.',true);
       return;
     }
     projectsData[i].image=result.url;
     preview.innerHTML='<img src="'+escAttr(result.url)+'" alt="">';
   }catch(e){
-    preview.textContent='Error al subir la imagen';
+    preview.textContent='Error al subir la imagen. Revisa la configuración de almacenamiento.';
+    showStatus('No se pudo subir la imagen. Revisa BLOB_READ_WRITE_TOKEN en Vercel.',true);
   }
 }
 
