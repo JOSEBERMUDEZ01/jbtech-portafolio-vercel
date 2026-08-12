@@ -352,6 +352,57 @@ async function saveLeadPackage(input) {
   };
 }
 
+
+// ============================================================
+// CONTACTO POR SESSION_ID
+// Se usa para finalizar una solicitud después de una recarga,
+// evitando conservar PII en sessionStorage del navegador.
+// ============================================================
+async function getContactBySessionId(sessionId) {
+  if (!sessionId || typeof sessionId !== 'string') {
+    throw new Error('Falta sessionId.');
+  }
+
+  const supabase = getClient();
+
+  const { data: conversation, error: conversationError } = await supabase
+    .from('conversaciones')
+    .select('id, consentimiento')
+    .eq('session_id', sessionId)
+    .order('fecha', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (conversationError) {
+    throw new Error('No se pudo consultar la conversación.');
+  }
+
+  if (!conversation || conversation.consentimiento !== true) {
+    return null;
+  }
+
+  const { data: contact, error: contactError } = await supabase
+    .from('contactos')
+    .select('nombre, correo, whatsapp, consentimiento')
+    .eq('conversation_id', conversation.id)
+    .eq('consentimiento', true)
+    .order('fecha', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (contactError) {
+    throw new Error('No se pudo consultar el contacto.');
+  }
+
+  if (!contact) return null;
+
+  return {
+    name: contact.nombre || '',
+    email: contact.correo || '',
+    whatsapp: contact.whatsapp || ''
+  };
+}
+
 // ============================================================
 // DASHBOARD
 //
@@ -986,6 +1037,7 @@ async function listContacts(params = {}) {
 
 module.exports = {
   saveLeadPackage,
+  getContactBySessionId,
   getDashboardCounts,
   listLeads,
   getLeadDetail,
