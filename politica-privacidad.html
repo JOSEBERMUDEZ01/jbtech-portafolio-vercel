@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Política de Privacidad — JB Tech</title>
+<meta name="description" content="Qué información puede solicitar JB TECH, para qué la utiliza y qué opciones tienes sobre ella.">
+<meta name="robots" content="noindex">
+<style>
+  /* ============================================================
+     Mismo sistema de tokens "plano técnico" (blueprint) que usa
+     index.html — colores, radios y tipografía consistentes con
+     el resto del portafolio. No se duplican las fuentes
+     incrustadas en base64 del archivo principal; se usa una pila
+     de fuentes del sistema con el mismo peso visual.
+     ============================================================ */
+  :root{
+    --ink:#F5F1EF; --panel:#FBF8F7; --panel-2:#F2ECEA;
+    --line: rgba(40,28,32,0.10); --line-strong: rgba(40,28,32,0.18);
+    --signal:#9B2242; --signal-soft: rgba(155,34,66,0.08);
+    --amber:#6E6468; --paper:#211A1C; --muted:#6E6468;
+    --accent-end:#B85C74;
+    --radius:10px; --grid-size:42px;
+    --font-display:-apple-system,BlinkMacSystemFont,'Segoe UI',Manrope,Roboto,Arial,sans-serif;
+    --font-body:-apple-system,BlinkMacSystemFont,'Segoe UI',Manrope,Roboto,Arial,sans-serif;
+    --font-mono:'SFMono-Regular','Consolas','Liberation Mono',Menlo,Courier,monospace;
+  }
+  *{ box-sizing:border-box; }
+  html{ scroll-behavior:smooth; }
+  body{
+    margin:0; color:var(--paper); font-family:var(--font-body);
+    line-height:1.65; -webkit-font-smoothing:antialiased; overflow-x:hidden;
+    background:
+      radial-gradient(circle at 1px 1px, var(--line) 1px, transparent 1px) 0 0/var(--grid-size) var(--grid-size),
+      var(--ink);
+  }
+
+  .wrap{ max-width:760px; margin:0 auto; padding:40px 20px 100px; }
+
+  .back-link{
+    display:inline-flex; align-items:center; gap:6px;
+    color:var(--signal); text-decoration:none; font-weight:600;
+    font-size:.88rem; margin-bottom:28px;
+  }
+  .back-link:hover{ text-decoration:underline; }
+  .back-link:focus-visible{ outline:2px solid var(--signal); outline-offset:3px; border-radius:4px; }
+  .back-link svg{ width:15px; height:15px; flex-shrink:0; }
+
+  header.hero{
+    background:var(--panel); border:1px solid var(--line); border-radius:var(--radius);
+    padding:30px 26px; margin-bottom:28px;
+    box-shadow:0 10px 26px -14px rgba(40,28,32,.18);
+  }
+  .eyebrow{
+    display:inline-block; font-family:var(--font-mono); font-size:.7rem;
+    letter-spacing:.08em; text-transform:uppercase; color:var(--signal);
+    background:var(--signal-soft); border:1px solid rgba(155,34,66,.18);
+    border-radius:999px; padding:5px 12px; margin-bottom:14px;
+  }
+  h1{
+    font-family:var(--font-display); font-size:clamp(1.5rem,4vw,2.05rem);
+    margin:0 0 10px; letter-spacing:-.01em; font-weight:800;
+  }
+  .subtitle{ color:var(--paper); font-size:.96rem; margin:0 0 8px; max-width:56ch; }
+  .subtitle-hint{ color:var(--muted); font-size:.85rem; margin:0 0 16px; }
+  .meta-row{
+    display:flex; flex-wrap:wrap; gap:8px 16px; align-items:center;
+    font-family:var(--font-mono); font-size:.74rem; color:var(--muted);
+    letter-spacing:.02em; padding-top:14px; border-top:1px solid var(--line);
+  }
+  .meta-row strong{ color:var(--paper); }
+
+  /* ============================================================
+     ACORDEÓN PRINCIPAL — toda la política funciona así. Cada
+     sección es número + título + flecha; el contenido solo
+     aparece al abrirla. Varias secciones pueden estar abiertas
+     al mismo tiempo (no se cierran entre sí).
+     ============================================================ */
+  .acc-main{ display:flex; flex-direction:column; gap:12px; }
+
+  .acc-main-item{
+    background:var(--panel); border:1px solid var(--line); border-radius:var(--radius);
+    overflow:hidden; transition:border-color .2s ease;
+  }
+  .acc-main-item:has(.acc-trigger[aria-expanded="true"]){ border-color:rgba(155,34,66,.35); }
+
+  .acc-trigger{
+    width:100%; display:flex; align-items:center; gap:14px;
+    background:transparent; border:none; text-align:left; cursor:pointer;
+    -webkit-tap-highlight-color:transparent; font-family:var(--font-body);
+  }
+  .acc-trigger:hover{ background:rgba(155,34,66,.04); }
+  .acc-trigger:focus-visible{ outline:2px solid var(--signal); outline-offset:-2px; }
+
+  .acc-trigger--main{ padding:18px 20px; min-height:56px; }
+  .acc-main-idx{
+    font-family:var(--font-mono); font-size:.78rem; color:var(--signal);
+    letter-spacing:.04em; flex-shrink:0; width:22px;
+  }
+  .acc-main-title{
+    flex:1; font-family:var(--font-display); font-weight:700; font-size:1rem;
+    color:var(--paper);
+  }
+  .acc-arrow{
+    font-size:1.05rem; color:var(--signal); flex-shrink:0; line-height:1;
+    transition:transform .22s ease;
+  }
+  .acc-trigger[aria-expanded="true"] .acc-arrow{ transform:rotate(90deg); }
+
+  .acc-main-panel{
+    max-height:0; overflow:hidden; transition:max-height .3s ease;
+  }
+  .acc-main-panel.is-open{ max-height:none; }
+  .acc-main-panel-inner{ padding:0 20px 20px 56px; }
+  .acc-main-panel-inner p{ margin:0 0 12px; font-size:.93rem; color:var(--paper); max-width:60ch; }
+  .acc-main-panel-inner p:last-child{ margin-bottom:0; }
+  .acc-main-panel-inner ul{ margin:0 0 12px; padding:0; list-style:none; max-width:60ch; }
+  .acc-main-panel-inner li{
+    display:flex; align-items:flex-start; gap:9px; font-size:.9rem; margin-bottom:8px; color:var(--paper);
+  }
+  .acc-main-panel-inner li::before{ content:"›"; color:var(--signal); font-weight:700; line-height:1.4; }
+  .acc-main-panel-inner .muted-note{
+    font-size:.82rem; color:var(--muted); border-left:2px solid var(--line-strong);
+    padding-left:12px; margin-top:12px;
+  }
+
+  /* Sub-acordeón (segundo nivel): dentro de "Tus derechos" y de
+     "¿Cuándo puede compartirse información?". Visualmente más
+     discreto, indentado, bullet "▸" para diferenciarlo del nivel
+     principal. */
+  .acc-sub{ display:flex; flex-direction:column; gap:8px; margin-top:4px; }
+  .acc-sub-item{
+    background:var(--panel-2); border:1px solid var(--line); border-radius:8px; overflow:hidden;
+  }
+  .acc-trigger--sub{
+    padding:12px 14px; min-height:46px; font-size:.88rem; font-weight:600; color:var(--paper);
+  }
+  .acc-sub-bullet{ color:var(--signal); font-size:.85rem; flex-shrink:0; }
+  .acc-sub-title{ flex:1; }
+  .acc-sub-arrow{ font-size:.85rem; }
+  .acc-sub-panel{ max-height:0; overflow:hidden; transition:max-height .26s ease; }
+  .acc-sub-panel-inner{ padding:0 14px 13px 32px; }
+  .acc-sub-panel-inner p{ margin:0; font-size:.86rem; color:var(--muted); max-width:56ch; }
+
+  footer.identity{
+    margin-top:36px; padding:26px 24px; background:var(--paper);
+    color:var(--panel); border-radius:var(--radius);
+    display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:16px;
+  }
+  footer.identity .brand{ font-family:var(--font-display); font-weight:800; font-size:1.02rem; color:var(--panel); }
+  footer.identity .brand span{
+    display:block; font-family:var(--font-mono); font-weight:400; font-size:.7rem;
+    color:rgba(245,241,239,.65); letter-spacing:.03em; margin-top:4px; text-transform:none;
+  }
+  footer.identity a{
+    color:var(--panel); text-decoration:none; font-size:.85rem; font-weight:600;
+    display:inline-flex; align-items:center; gap:6px; border:1px solid rgba(245,241,239,.35);
+    padding:10px 16px; border-radius:999px; transition:border-color .2s ease, background .2s ease;
+    min-height:40px;
+  }
+  footer.identity a:hover{ border-color:var(--signal); background:rgba(155,34,66,.18); }
+  footer.identity a:focus-visible{ outline:2px solid var(--signal); outline-offset:2px; }
+
+  @media (max-width:640px){
+    .wrap{ padding:26px 16px 90px; }
+    header.hero{ padding:24px 20px; }
+    .acc-trigger--main{ padding:15px 14px; gap:10px; }
+    .acc-main-idx{ width:18px; font-size:.72rem; }
+    .acc-main-title{ font-size:.94rem; }
+    .acc-main-panel-inner{ padding:0 14px 16px 32px; }
+    .acc-sub-panel-inner{ padding:0 12px 12px 26px; }
+    footer.identity{ flex-direction:column; align-items:flex-start; padding:22px 20px; }
+    footer.identity a{ width:100%; justify-content:center; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .acc-main-panel, .acc-sub-panel, .acc-arrow, .acc-main-item{ transition:none !important; }
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+
+    <a class="back-link" href="/">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      Volver al portafolio
+    </a>
+
+    <header class="hero">
+      <span class="eyebrow">JB TECH · Privacidad</span>
+      <h1>Política de Privacidad</h1>
+      <p class="subtitle">Esta política explica de manera sencilla qué información puede solicitar JB TECH, para qué puede utilizarse y qué opciones tienes cuando decides compartirla.</p>
+      <p class="subtitle-hint">Lee cada sección según lo que quieras conocer.</p>
+      <div class="meta-row">
+        <span>Última actualización: <strong>agosto de 2026</strong></span>
+        <span>Aplica a: <strong>el portafolio y el asistente JB TECH AI</strong></span>
+      </div>
+    </header>
+
+    <div class="acc-main">
+
+      <!-- 01 — abierta por defecto para ayudar a la comprensión inicial -->
+      <div class="acc-main-item">
+        <h2 style="margin:0;">
+          <button type="button" class="acc-trigger acc-trigger--main" aria-expanded="true" aria-controls="acc-panel-01" id="acc-trigger-01">
+            <span class="acc-main-idx">01</span>
+            <span class="acc-main-title">¿Qué es esta política?</span>
+            <span class="acc-arrow" aria-hidden="true">→</span>
+          </button>
+        </h2>
+        <div id="acc-panel-01" class="acc-main-panel is-open" role="region" aria-labelledby="acc-trigger-01">
+          <div class="acc-main-panel-inner">
+            <p>Es el documento donde JB TECH explica qué información puede solicitar a quienes visitan este portafolio o conversan con el asistente JB TECH AI, para qué puede utilizarse, y qué opciones tienes al respecto.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 02 -->
+      <div class="acc-main-item">
+        <h2 style="margin:0;">
+          <button type="button" class="acc-trigger acc-trigger--main" aria-expanded="false" aria-controls="acc-panel-02" id="acc-trigger-02">
+            <span class="acc-main-idx">02</span>
+            <span class="acc-main-title">¿Puedo conversar con JB TECH AI sin entregar mis datos?</span>
+            <span class="acc-arrow" aria-hidden="true">→</span>
+          </button>
+        </h2>
+        <div id="acc-panel-02" class="acc-main-panel" role="region" aria-labelledby="acc-trigger-02" hidden>
+          <div class="acc-main-panel-inner">
+            <p>Sí. Puedes hacer preguntas, conocer los servicios y explicar una idea sin entregar información de contacto. Conversar con el asistente no equivale a enviar una solicitud.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 03 -->
+      <div class="acc-main-item">
+        <h2 style="margin:0;">
+          <button type="button" class="acc-trigger acc-trigger--main" aria-expanded="false" aria-controls="acc-panel-03" id="acc-trigger-03">
+            <span class="acc-main-idx">03</span>
+            <span class="acc-main-title">¿Qué información podemos solicitar?</span>
+            <span class="acc-arrow" aria-hidden="true">→</span>
+          </button>
+        </h2>
+        <div id="acc-panel-03" class="acc-main-panel" role="region" aria-labelledby="acc-trigger-03" hidden>
+          <div class="acc-main-panel-inner">
+            <p>Si decides avanzar con una solicitud y autorizas su uso, podríamos pedirte:</p>
+            <ul>
+              <li>Nombre</li>
+              <li>Un medio de contacto, como WhatsApp, teléfono o correo electrónico</li>
+              <li>Información relacionada con tu proyecto o solicitud</li>
+            </ul>
+            <p class="muted-note">No se solicita ningún otro dato que no tenga relación directa con lo que nos planteas.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 04 -->
+      <div class="acc-main-item">
+        <h2 style="margin:0;">
+          <button type="button" class="acc-trigger acc-trigger--main" aria-expanded="false" aria-controls="acc-panel-04" id="acc-trigger-04">
+            <span class="acc-main-idx">04</span>
+            <span class="acc-main-title">¿Para qué utilizamos la información?</span>
+            <span class="acc-arrow" aria-hidden="true">→</span>
+          </button>
+        </h2>
+        <div id="acc-panel-04" class="acc-main-panel" role="region" aria-labelledby="acc-trigger-04" hidden>
+          <div class="acc-main-panel-inner">
+            <p>La información autorizada puede utilizarse para entender tu solicitud, organizar la idea de tu proyecto, responderte y dar seguimiento a lo que nos planteaste.</p>
+            <p class="muted-note">No se vende ni se alquila a terceros, y no se utiliza para fines distintos a los aquí descritos salvo que lo autorices expresamente.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 05 -->
+      <div class="acc-main-item">
+        <h2 style="margin:0;">
+          <button type="button" class="acc-trigger acc-trigger--main" aria-expanded="false" aria-controls="acc-panel-05" id="acc-trigger-05">
+            <span class="acc-main-idx">05</span>
+            <span class="acc-main-title">¿Cuándo puede compartirse información?</span>
+            <span class="acc-arrow" aria-hidden="true">→</span>
+          </button>
+        </h2>
+        <div id="acc-panel-05" class="acc-main-panel" role="region" aria-labelledby="acc-trigger-05" hidden>
+          <div class="acc-main-panel-inner">
+            <p>Para operar el sitio y el asistente, JB TECH puede apoyarse en servicios tecnológicos externos necesarios para prestar determinadas funciones, como mantener el sitio disponible o procesar tu solicitud.</p>
+
+            <div class="acc-sub">
+              <div class="acc-sub-item">
+                <h3 style="margin:0;">
+                  <button type="button" class="acc-trigger acc-trigger--sub" aria-expanded="false" aria-controls="acc-panel-05-1" id="acc-trigger-05-1">
+                    <span class="acc-sub-bullet" aria-hidden="true">▸</span>
+                    <span class="acc-sub-title">Alojamiento del sitio</span>
+                    <span class="acc-arrow acc-sub-arrow" aria-hidden="true">→</span>
+                  </button>
+                </h3>
+                <div id="acc-panel-05-1" class="acc-sub-panel" role="region" aria-labelledby="acc-trigger-05-1" hidden>
+                  <div class="acc-sub-panel-inner"><p>Permite mantener el portafolio disponible en internet.</p></div>
+                </div>
+              </div>
+
+              <div class="acc-sub-item">
+                <h3 style="margin:0;">
+                  <button type="button" class="acc-trigger acc-trigger--sub" aria-expanded="false" aria-controls="acc-panel-05-2" id="acc-trigger-05-2">
+                    <span class="acc-sub-bullet" aria-hidden="true">▸</span>
+                    <span class="acc-sub-title">Servicios tecnológicos</span>
+                    <span class="acc-arrow acc-sub-arrow" aria-hidden="true">→</span>
+                  </button>
+                </h3>
+                <div id="acc-panel-05-2" class="acc-sub-panel" role="region" aria-labelledby="acc-trigger-05-2" hidden>
+                  <div class="acc-sub-panel-inner"><p>Algunas funciones utilizan servicios externos necesarios para procesar determinadas solicitudes, como generar respuestas o avisarnos de una nueva solicitud.</p></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 06 -->
+      <div class="acc-main-item">
+        <h2 style="margin:0;">
+          <button type="button" class="acc-trigger acc-trigger--main" aria-expanded="false" aria-controls="acc-panel-06" id="acc-trigger-06">
+            <span class="acc-main-idx">06</span>
+            <span class="acc-main-title">¿Cómo protegemos y conservamos la información?</span>
+            <span class="acc-arrow" aria-hidden="true">→</span>
+          </button>
+        </h2>
+        <div id="acc-panel-06" class="acc-main-panel" role="region" aria-labelledby="acc-trigger-06" hidden>
+          <div class="acc-main-panel-inner">
+            <p>JB TECH aplica medidas razonables para proteger la información frente a accesos no autorizados, pérdida o uso indebido. Ninguna medida de seguridad puede garantizarse como absoluta, pero la tratamos con cuidado.</p>
+            <p>La información se conserva durante el tiempo necesario para atender la solicitud o cumplir la finalidad correspondiente, y puede eliminarse o dejar de utilizarse cuando ya no lo sea.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 07 -->
+      <div class="acc-main-item">
+        <h2 style="margin:0;">
+          <button type="button" class="acc-trigger acc-trigger--main" aria-expanded="false" aria-controls="acc-panel-07" id="acc-trigger-07">
+            <span class="acc-main-idx">07</span>
+            <span class="acc-main-title">Tus derechos</span>
+            <span class="acc-arrow" aria-hidden="true">→</span>
+          </button>
+        </h2>
+        <div id="acc-panel-07" class="acc-main-panel" role="region" aria-labelledby="acc-trigger-07" hidden>
+          <div class="acc-main-panel-inner">
+            <p>Si compartes información personal con JB TECH, puedes solicitar lo siguiente:</p>
+
+            <div class="acc-sub">
+              <div class="acc-sub-item">
+                <h3 style="margin:0;">
+                  <button type="button" class="acc-trigger acc-trigger--sub" aria-expanded="false" aria-controls="acc-panel-07-1" id="acc-trigger-07-1">
+                    <span class="acc-sub-bullet" aria-hidden="true">▸</span>
+                    <span class="acc-sub-title">Conocer la información</span>
+                    <span class="acc-arrow acc-sub-arrow" aria-hidden="true">→</span>
+                  </button>
+                </h3>
+                <div id="acc-panel-07-1" class="acc-sub-panel" role="region" aria-labelledby="acc-trigger-07-1" hidden>
+                  <div class="acc-sub-panel-inner"><p>Puedes solicitar información sobre los datos personales que JB TECH tenga relacionados con tu solicitud, de acuerdo con el caso.</p></div>
+                </div>
+              </div>
+
+              <div class="acc-sub-item">
+                <h3 style="margin:0;">
+                  <button type="button" class="acc-trigger acc-trigger--sub" aria-expanded="false" aria-controls="acc-panel-07-2" id="acc-trigger-07-2">
+                    <span class="acc-sub-bullet" aria-hidden="true">▸</span>
+                    <span class="acc-sub-title">Solicitar correcciones</span>
+                    <span class="acc-arrow acc-sub-arrow" aria-hidden="true">→</span>
+                  </button>
+                </h3>
+                <div id="acc-panel-07-2" class="acc-sub-panel" role="region" aria-labelledby="acc-trigger-07-2" hidden>
+                  <div class="acc-sub-panel-inner"><p>Si consideras que algún dato es incorrecto, puedes solicitar que sea revisado o corregido.</p></div>
+                </div>
+              </div>
+
+              <div class="acc-sub-item">
+                <h3 style="margin:0;">
+                  <button type="button" class="acc-trigger acc-trigger--sub" aria-expanded="false" aria-controls="acc-panel-07-3" id="acc-trigger-07-3">
+                    <span class="acc-sub-bullet" aria-hidden="true">▸</span>
+                    <span class="acc-sub-title">Solicitar eliminación cuando corresponda</span>
+                    <span class="acc-arrow acc-sub-arrow" aria-hidden="true">→</span>
+                  </button>
+                </h3>
+                <div id="acc-panel-07-3" class="acc-sub-panel" role="region" aria-labelledby="acc-trigger-07-3" hidden>
+                  <div class="acc-sub-panel-inner"><p>Puedes solicitar la eliminación de tu información cuando corresponda y sea posible de acuerdo con la finalidad para la que fue recopilada.</p></div>
+                </div>
+              </div>
+
+              <div class="acc-sub-item">
+                <h3 style="margin:0;">
+                  <button type="button" class="acc-trigger acc-trigger--sub" aria-expanded="false" aria-controls="acc-panel-07-4" id="acc-trigger-07-4">
+                    <span class="acc-sub-bullet" aria-hidden="true">▸</span>
+                    <span class="acc-sub-title">Retirar una autorización cuando sea posible</span>
+                    <span class="acc-arrow acc-sub-arrow" aria-hidden="true">→</span>
+                  </button>
+                </h3>
+                <div id="acc-panel-07-4" class="acc-sub-panel" role="region" aria-labelledby="acc-trigger-07-4" hidden>
+                  <div class="acc-sub-panel-inner"><p>Si antes autorizaste el uso de tus datos, puedes solicitar retirar esa autorización cuando corresponda.</p></div>
+                </div>
+              </div>
+
+              <div class="acc-sub-item">
+                <h3 style="margin:0;">
+                  <button type="button" class="acc-trigger acc-trigger--sub" aria-expanded="false" aria-controls="acc-panel-07-5" id="acc-trigger-07-5">
+                    <span class="acc-sub-bullet" aria-hidden="true">▸</span>
+                    <span class="acc-sub-title">Realizar consultas sobre el uso de la información</span>
+                    <span class="acc-arrow acc-sub-arrow" aria-hidden="true">→</span>
+                  </button>
+                </h3>
+                <div id="acc-panel-07-5" class="acc-sub-panel" role="region" aria-labelledby="acc-trigger-07-5" hidden>
+                  <div class="acc-sub-panel-inner"><p>Puedes escribirnos para resolver cualquier duda sobre cómo se utiliza la información que compartiste.</p></div>
+                </div>
+              </div>
+            </div>
+
+            <p class="muted-note">Para cualquiera de estas solicitudes, puedes escribirnos a través de los canales de contacto disponibles en el portafolio.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 08 -->
+      <div class="acc-main-item">
+        <h2 style="margin:0;">
+          <button type="button" class="acc-trigger acc-trigger--main" aria-expanded="false" aria-controls="acc-panel-08" id="acc-trigger-08">
+            <span class="acc-main-idx">08</span>
+            <span class="acc-main-title">Cambios en esta política y contacto</span>
+            <span class="acc-arrow" aria-hidden="true">→</span>
+          </button>
+        </h2>
+        <div id="acc-panel-08" class="acc-main-panel" role="region" aria-labelledby="acc-trigger-08" hidden>
+          <div class="acc-main-panel-inner">
+            <p>Esta política puede actualizarse cuando sea necesario. Si tienes preguntas sobre su contenido o sobre tu información, puedes escribirnos a través de los canales de contacto disponibles en el portafolio.</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <footer class="identity">
+      <div class="brand">
+        JB TECH
+        <span>Soluciones digitales y desarrollo de software — Colombia</span>
+      </div>
+      <a href="/">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        Volver al portafolio
+      </a>
+    </footer>
+
+  </div>
+
+  <script>
+  (function(){
+    "use strict";
+
+    function openPanel(trigger, panel){
+      panel.hidden = false;
+      var target = panel.scrollHeight;
+      panel.style.maxHeight = '0px';
+      panel.offsetHeight; // forzar reflow para que la transición desde 0 funcione
+      panel.style.maxHeight = target + 'px';
+      trigger.setAttribute('aria-expanded', 'true');
+
+      function onEnd(e){
+        if(e.propertyName !== 'max-height') return;
+        panel.style.maxHeight = 'none';
+        panel.removeEventListener('transitionend', onEnd);
+      }
+      panel.addEventListener('transitionend', onEnd);
+    }
+
+    function closePanel(trigger, panel){
+      var current = panel.scrollHeight;
+      panel.style.maxHeight = current + 'px';
+      panel.offsetHeight;
+      panel.style.maxHeight = '0px';
+      trigger.setAttribute('aria-expanded', 'false');
+
+      function onEnd(e){
+        if(e.propertyName !== 'max-height') return;
+        panel.hidden = true;
+        panel.removeEventListener('transitionend', onEnd);
+      }
+      panel.addEventListener('transitionend', onEnd);
+    }
+
+    // Todos los triggers (nivel principal y sub-nivel) comparten el
+    // mismo comportamiento: abren/cierran de forma independiente.
+    // Ninguno cierra a los demás — el usuario puede tener varias
+    // secciones abiertas al mismo tiempo.
+    var triggers = document.querySelectorAll('.acc-trigger');
+    triggers.forEach(function(trigger){
+      var panel = document.getElementById(trigger.getAttribute('aria-controls'));
+      if(!panel) return;
+
+      trigger.addEventListener('click', function(){
+        var isOpen = trigger.getAttribute('aria-expanded') === 'true';
+        if(isOpen){
+          closePanel(trigger, panel);
+        } else {
+          openPanel(trigger, panel);
+        }
+      });
+    });
+  })();
+  </script>
+</body>
+</html>
