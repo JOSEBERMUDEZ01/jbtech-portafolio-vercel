@@ -24,7 +24,7 @@
 // Variables de entorno usadas (algunas ya existían):
 //   RESEND_API_KEY               -> ya configurada (send-email.js)
 //   SUPABASE_URL                 -> NUEVA, hay que configurarla
-//   SUPABASE_SERVICE_ROLE_KEY    -> NUEVA, hay que configurarla
+//   SUPABASE_SECRET_KEY          -> variable ya existente en Vercel; se conserva
 // ============================================================
 
 const { kv } = require('@vercel/kv');
