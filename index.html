@@ -4,16 +4,16 @@
 <meta name="google-site-verification" content="T7PIyJQ68zPMzOE_NVRhM-73tanPy0Q19Ed86iJJXTs" />
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>Jose Bermúdez — Desarrollo de Software Full Stack | JB Tech</title>
-<meta name="description" content="Desarrollador Full Stack en formación activa, especializado en Python, Django, JavaScript y PWAs. Construyo y documento software a la medida: desde el análisis y la ERS hasta el soporte en producción.">
-<meta name="keywords" content="desarrollador de software, Django, Python, JavaScript, PWA, JB Tech, software a la medida, ERS, arquitectura de software">
+<title>Jose Bermúdez — Desarrollo de Software y Soluciones Web | JB Tech</title>
+<meta name="description" content="Desarrollador de software en formación activa, especializado en Python, Django, JavaScript y PWAs. Construyo y documento software a la medida: desde el análisis y la ERS hasta el soporte en producción.">
+<meta name="keywords" content="desarrollador de software, Django, Python, JavaScript, PWA, Riohacha, La Guajira, JB Tech, software a la medida, ERS, arquitectura de software">
 <meta name="author" content="Jose Bermúdez — JB Tech">
 <meta name="robots" content="index, follow">
 <link rel="canonical" href="https://portafoliojb.vercel.app/">
 
 <!-- Open Graph -->
 <meta property="og:type" content="website">
-<meta property="og:title" content="Jose Bermúdez — Desarrollo de Software Full Stack">
+<meta property="og:title" content="Jose Bermúdez — Desarrollo de Software y Soluciones Web">
 <meta property="og:description" content="Construyo software a la medida con un proceso de ingeniería completo: análisis, ERS, diseño, desarrollo, pruebas, implementación y soporte.">
 <meta property="og:url" content="https://portafoliojb.vercel.app/">
 <meta property="og:site_name" content="JB Tech">
@@ -21,8 +21,8 @@
 
 <!-- Twitter -->
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Jose Bermúdez — Desarrollo de Software Full Stack">
-<meta name="twitter:description" content="Desarrollador Full Stack — Python, Django, JavaScript, PWAs y automatización.">
+<meta name="twitter:title" content="Jose Bermúdez — Desarrollo de Software y Soluciones Web">
+<meta name="twitter:description" content="Desarrollador de software — Python, Django, JavaScript, PWAs y automatización.">
 
 <!-- Schema.org -->
 <script type="application/ld+json">
@@ -30,12 +30,18 @@
   "@context": "https://schema.org",
   "@type": "Person",
   "name": "Jose Bermúdez",
-  "jobTitle": "Desarrollador Full Stack",
+  "jobTitle": "Desarrollador de software y soluciones web",
   "worksFor": {
     "@type": "Organization",
     "name": "JB Tech"
   },
   "url": "https://portafoliojb.vercel.app/",
+  "address": {
+    "@type": "PostalAddress",
+    "addressLocality": "Riohacha",
+    "addressRegion": "La Guajira",
+    "addressCountry": "CO"
+  },
   "knowsAbout": ["Python", "Django", "JavaScript", "PostgreSQL", "SQLite", "PWA", "SEO", "Arquitectura de software", "ERS"],
   "sameAs": []
 }
@@ -411,6 +417,31 @@ html[data-theme="dark"] .theme-toggle .icon-moon{ display:block; }
   font-family:var(--font-mono); font-size:.76rem; padding:7px 13px;
   border:1px solid var(--line-strong); border-radius:20px; color:var(--muted);
 }
+.tech-chips .tech-chip{
+  position:relative; overflow:hidden; cursor:default;
+  background:rgba(255,255,255,.18);
+  transform:translateY(0);
+  opacity:0;
+  animation:techChipIn .65s cubic-bezier(.22,1,.36,1) forwards;
+  animation-delay:calc(var(--tech-index, 0) * 70ms);
+  transition:transform .28s ease, border-color .28s ease, color .28s ease, box-shadow .28s ease, background .28s ease;
+}
+.tech-chips .tech-chip:nth-child(1){--tech-index:0}.tech-chips .tech-chip:nth-child(2){--tech-index:1}.tech-chips .tech-chip:nth-child(3){--tech-index:2}.tech-chips .tech-chip:nth-child(4){--tech-index:3}.tech-chips .tech-chip:nth-child(5){--tech-index:4}.tech-chips .tech-chip:nth-child(6){--tech-index:5}.tech-chips .tech-chip:nth-child(7){--tech-index:6}.tech-chips .tech-chip:nth-child(8){--tech-index:7}
+.tech-chips .tech-chip::after{
+  content:""; position:absolute; inset:0; transform:translateX(-120%);
+  background:linear-gradient(100deg,transparent,rgba(155,34,66,.09),transparent);
+  transition:transform .55s ease; pointer-events:none;
+}
+.tech-chips .tech-chip:hover{
+  transform:translateY(-3px); color:var(--paper); border-color:var(--signal);
+  background:var(--signal-soft); box-shadow:0 8px 22px rgba(155,34,66,.10);
+}
+.tech-chips .tech-chip:hover::after{transform:translateX(120%)}
+@keyframes techChipIn{from{opacity:0;transform:translateY(8px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
+@media (prefers-reduced-motion:reduce){
+  .tech-chips .tech-chip{animation:none;opacity:1;transition:none}
+  .tech-chips .tech-chip::after{display:none}
+}
 
 /* ============================================================
    PROCESO — línea de pasos numerados (orden real = información)
@@ -727,18 +758,46 @@ footer{ padding:50px 0 40px; }
 .jbai-launcher{
   position:fixed; right:24px; bottom:92px; z-index:200;
   width:56px; height:56px; border-radius:50%; border:none; cursor:pointer;
-  background:linear-gradient(135deg, var(--signal), #711A32);
+  background:radial-gradient(circle at 34% 28%, #d96f8a 0%, var(--signal) 42%, #541426 100%);
   display:flex; align-items:center; justify-content:center;
-  box-shadow:0 10px 26px -8px rgba(155,34,66,.55);
-  transition:transform .2s ease, box-shadow .2s ease;
+  box-shadow:0 12px 30px -9px rgba(155,34,66,.72), inset 0 1px 0 rgba(255,255,255,.22);
+  transition:transform .25s cubic-bezier(.2,.8,.2,1), box-shadow .25s ease;
+  isolation:isolate;
+  animation:jbaiFloat 4.8s ease-in-out infinite;
 }
-.jbai-launcher:hover{ transform:translateY(-3px); box-shadow:0 14px 30px -8px rgba(155,34,66,.65); }
-.jbai-launcher svg{ width:24px; height:24px; fill:#fff; }
+.jbai-launcher::before{
+  content:""; position:absolute; inset:-5px; border-radius:50%;
+  border:1px solid rgba(184,92,116,.34); opacity:.7; z-index:-1;
+  animation:jbaiPulse 2.8s ease-out infinite;
+}
+.jbai-launcher:hover{
+  transform:translateY(-5px) scale(1.035);
+  box-shadow:0 18px 38px -10px rgba(155,34,66,.78), inset 0 1px 0 rgba(255,255,255,.26);
+}
+.jbai-launcher:focus-visible{ outline:2px solid var(--amber); outline-offset:4px; }
+.jbai-launcher svg{ width:39px; height:39px; overflow:visible; display:block; }
+.jbai-launcher .jbai-robot-shell{ transform-origin:center; animation:jbaiRobotFloat 3.6s ease-in-out infinite; }
+.jbai-launcher .jbai-eye{ transform-box:fill-box; transform-origin:center; animation:jbaiEyeGlow 2.4s ease-in-out infinite; }
+.jbai-launcher .jbai-eye:nth-of-type(2){ animation-delay:.12s; }
+.jbai-launcher .jbai-scan{ transform-origin:50% 50%; animation:jbaiScan 2.2s ease-in-out infinite; }
 .jbai-launcher .jbai-dot{
   position:absolute; top:-2px; right:-2px; width:11px; height:11px; border-radius:50%;
   background:#3ddc84; border:2px solid var(--ink);
+  box-shadow:0 0 0 0 rgba(61,220,132,.45);
+  animation:jbaiOnline 2.2s ease-out infinite;
 }
-.jbai-launcher.jbai-hide{ transform:scale(.6); opacity:0; pointer-events:none; }
+.jbai-launcher.jbai-hide{ transform:scale(.6); opacity:0; pointer-events:none; animation:none; }
+
+@keyframes jbaiFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}
+@keyframes jbaiPulse{0%{transform:scale(.94);opacity:.7}70%,100%{transform:scale(1.18);opacity:0}}
+@keyframes jbaiRobotFloat{0%,100%{transform:translateY(0) rotate(0deg)}50%{transform:translateY(-1px) rotate(.8deg)}}
+@keyframes jbaiEyeGlow{0%,100%{opacity:.78;filter:drop-shadow(0 0 1px rgba(255,255,255,.35))}50%{opacity:1;filter:drop-shadow(0 0 4px rgba(255,255,255,.85))}}
+@keyframes jbaiScan{0%,100%{opacity:.12;transform:translateX(-4px)}45%,55%{opacity:.5;transform:translateX(4px)}}
+@keyframes jbaiOnline{0%,100%{box-shadow:0 0 0 0 rgba(61,220,132,.45)}45%{box-shadow:0 0 0 5px rgba(61,220,132,0)}}
+@media (prefers-reduced-motion:reduce){
+  .jbai-launcher,.jbai-launcher::before,.jbai-launcher .jbai-robot-shell,.jbai-launcher .jbai-eye,.jbai-launcher .jbai-scan,.jbai-launcher .jbai-dot{animation:none !important}
+}
+
 
 .jbai-panel{
   position:fixed; right:24px; bottom:160px; z-index:201;
@@ -762,10 +821,21 @@ footer{ padding:50px 0 40px; }
 .jbai-header-text span{ display:block; font-family:var(--font-mono); font-size:.68rem; color:var(--amber); }
 .jbai-avatar{
   width:32px; height:32px; border-radius:50%; flex-shrink:0;
-  background:linear-gradient(135deg, var(--signal), var(--accent-end));
+  background:radial-gradient(circle at 34% 28%, #d96f8a 0%, var(--signal) 48%, #541426 100%);
   display:flex; align-items:center; justify-content:center;
+  position:relative; overflow:hidden;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.2), 0 5px 14px rgba(155,34,66,.28);
 }
-.jbai-avatar svg{ width:17px; height:17px; fill:#fff; }
+.jbai-avatar::after{
+  content:""; position:absolute; inset:2px; border-radius:50%;
+  border:1px solid rgba(255,255,255,.16); pointer-events:none;
+}
+.jbai-avatar svg{ width:27px; height:27px; overflow:visible; display:block; }
+.jbai-avatar .jbai-avatar-shell{ transform-origin:center; animation:jbaiRobotFloat 3.6s ease-in-out infinite; }
+.jbai-avatar .jbai-eye{ animation:jbaiEyeGlow 2.4s ease-in-out infinite; }
+.jbai-avatar .jbai-eye:nth-of-type(2){ animation-delay:.12s; }
+.jbai-avatar .jbai-scan{ animation:jbaiScan 2.2s ease-in-out infinite; }
+
 .jbai-close{
   background:transparent; border:1px solid var(--line); color:var(--paper); cursor:pointer;
   width:28px; height:28px; display:flex; align-items:center; justify-content:center;
@@ -794,6 +864,8 @@ footer{ padding:50px 0 40px; }
   text-align:left;
 }
 .jbai-chip:hover{ border-color:var(--signal); color:var(--signal); transform:translateY(-1px); }
+.jbai-chip.jbai-chip-selected{border-color:var(--signal);color:var(--signal);background:rgba(217,111,138,.10);box-shadow:0 0 0 1px rgba(217,111,138,.16) inset;}
+.jbai-quick-continue{margin-top:8px;}
 
 .jbai-footer{
   padding:12px 14px; border-top:1px solid var(--line); background:var(--ink);
@@ -931,8 +1003,8 @@ footer{ padding:50px 0 40px; }
 <header class="hero" id="inicio">
   <div class="container hero-grid">
     <div class="reveal in">
-      <span class="eyebrow" id="ck-hero-eyebrow">Ingeniería de software · Soluciones digitales a medida</span>
-      <h1 id="ck-hero-title">Soy <span class="accent">Jose Bermúdez</span>, desarrollador Full Stack.</h1>
+      <span class="eyebrow" id="ck-hero-eyebrow">Ingeniería de software · Riohacha, La Guajira</span>
+      <h1 id="ck-hero-title">Soy <span class="accent">Jose Bermúdez</span>, desarrollador de software.</h1>
       <p class="hero-tagline" id="ck-hero-tagline">Creamos soluciones digitales a medida para empresas y emprendimientos.</p>
       <p class="hero-sub" id="ck-hero-sub">Diseño, documento y construyo productos digitales completos: desde el análisis de requerimientos hasta el soporte en producción.</p>
       <div class="hero-cta">
@@ -971,17 +1043,17 @@ footer{ padding:50px 0 40px; }
   <div class="container about-grid">
     <div class="about-copy reveal">
       <span class="eyebrow">Sobre mí</span>
-      <h2 id="ck-about-title" style="font-size:clamp(1.7rem,3vw,2.3rem); margin-bottom:22px;">Full Stack, con la ingeniería como norte.</h2>
+      <h2 id="ck-about-title" style="font-size:clamp(1.7rem,3vw,2.3rem); margin-bottom:22px;">Desarrollador de software, con la ingeniería como norte.</h2>
       <p id="ck-about-p1">Especializado en <strong>Python, Django, JavaScript, PostgreSQL y PWAs</strong>, trabajo bajo la marca <strong>JB Tech</strong> construyendo soluciones completas para negocios reales — desde el análisis inicial hasta el soporte en producción, siguiendo siempre metodologías reales de ingeniería de software.</p>
-      <div class="chip-row">
-        <span class="chip">Python</span>
-        <span class="chip">Django</span>
-        <span class="chip">JavaScript</span>
-        <span class="chip">PostgreSQL</span>
-        <span class="chip">SQLite</span>
-        <span class="chip">PWA</span>
-        <span class="chip">SEO</span>
-        <span class="chip">Automatización</span>
+      <div class="chip-row tech-chips" aria-label="Tecnologías y áreas de trabajo">
+        <span class="chip tech-chip" data-tech="python">Python</span>
+        <span class="chip tech-chip" data-tech="django">Django</span>
+        <span class="chip tech-chip" data-tech="javascript">JavaScript</span>
+        <span class="chip tech-chip" data-tech="postgresql">PostgreSQL</span>
+        <span class="chip tech-chip" data-tech="sqlite">SQLite</span>
+        <span class="chip tech-chip" data-tech="pwa">PWA</span>
+        <span class="chip tech-chip" data-tech="seo">SEO</span>
+        <span class="chip tech-chip" data-tech="automation">Automatización</span>
       </div>
     </div>
   </div>
@@ -1226,11 +1298,11 @@ footer{ padding:50px 0 40px; }
 
       <div class="contact-line">
         <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z"/></svg></span>
-        <span id="ck-contact-whatsapp">Atención directa por WhatsApp</span>
+        <span id="ck-contact-whatsapp">WhatsApp: +57 302 352 8086</span>
       </div>
       <div class="contact-line">
         <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20 15 15 0 0 1 0-20Z"/></svg></span>
-        <span id="ck-contact-location">Atención digital para Colombia y otros países</span>
+        <span id="ck-contact-location">Riohacha, La Guajira, Colombia</span>
       </div>
       <div class="contact-line">
         <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg></span>
@@ -1315,7 +1387,26 @@ footer{ padding:50px 0 40px; }
      sin conexión a IA todavía. Ver Fase 2/3 para backend + Gemini)
      ============================================================ -->
 <button type="button" class="jbai-launcher" id="jbaiLauncher" aria-haspopup="dialog" aria-expanded="false" aria-controls="jbaiPanel" aria-label="Abrir asistente JB TECH AI">
-  <svg viewBox="0 0 24 24"><path d="M12 2a1 1 0 0 1 1 1v1.06A8.001 8.001 0 0 1 20 12v1a3 3 0 0 1 0 6v.5A2.5 2.5 0 0 1 17.5 22h-11A2.5 2.5 0 0 1 4 19.5V19a3 3 0 0 1 0-6v-1a8.001 8.001 0 0 1 7-7.94V3a1 1 0 0 1 1-1zm-4 9a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm8 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm-8.5 6a.5.5 0 0 0 0 1h9a.5.5 0 0 0 0-1z"/></svg>
+  <svg class="jbai-robot-icon" viewBox="0 0 48 48" aria-hidden="true">
+    <defs>
+      <linearGradient id="jbaiRobotMetalL" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset=".45" stop-color="#d9cfd2"/><stop offset="1" stop-color="#8d7b82"/></linearGradient>
+      <linearGradient id="jbaiRobotVisorL" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#2b171d"/><stop offset=".5" stop-color="#6f3045"/><stop offset="1" stop-color="#241116"/></linearGradient>
+      <filter id="jbaiRobotGlowL"><feGaussianBlur stdDeviation="1.4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    </defs>
+    <g class="jbai-robot-shell">
+      <circle cx="24" cy="24" r="20.5" fill="rgba(15,10,12,.28)" stroke="rgba(255,255,255,.22)"/>
+      <path d="M24 4.5v-2" stroke="#fff" stroke-width="1.7" stroke-linecap="round" opacity=".8"/>
+      <circle cx="24" cy="1.8" r="1.8" fill="#3ddc84" filter="url(#jbaiRobotGlowL)"/>
+      <rect x="8.5" y="9" width="31" height="28" rx="10" fill="url(#jbaiRobotMetalL)" stroke="#fff" stroke-opacity=".28"/>
+      <rect x="11.5" y="15" width="25" height="13" rx="6.5" fill="url(#jbaiRobotVisorL)" stroke="#fff" stroke-opacity=".12"/>
+      <circle class="jbai-eye" cx="18.2" cy="21.5" r="2.1" fill="#fff" filter="url(#jbaiRobotGlowL)"/>
+      <circle class="jbai-eye" cx="29.8" cy="21.5" r="2.1" fill="#fff" filter="url(#jbaiRobotGlowL)"/>
+      <rect class="jbai-scan" x="14" y="18.8" width="20" height="1" rx=".5" fill="#fff" opacity=".2"/>
+      <path d="M18 31.5h12" stroke="#6d5961" stroke-width="1.4" stroke-linecap="round"/>
+      <circle cx="13" cy="31.5" r="1.1" fill="#3ddc84" opacity=".85"/>
+      <circle cx="35" cy="31.5" r="1.1" fill="#3ddc84" opacity=".45"/>
+    </g>
+  </svg>
   <span class="jbai-dot"></span>
 </button>
 
@@ -1323,7 +1414,23 @@ footer{ padding:50px 0 40px; }
   <div class="jbai-header">
     <div class="jbai-header-left">
       <span class="jbai-avatar">
-        <svg viewBox="0 0 24 24"><path d="M12 2a1 1 0 0 1 1 1v1.06A8.001 8.001 0 0 1 20 12v1a3 3 0 0 1 0 6v.5A2.5 2.5 0 0 1 17.5 22h-11A2.5 2.5 0 0 1 4 19.5V19a3 3 0 0 1 0-6v-1a8.001 8.001 0 0 1 7-7.94V3a1 1 0 0 1 1-1zm-4 9a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm8 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm-8.5 6a.5.5 0 0 0 0 1h9a.5.5 0 0 0 0-1z"/></svg>
+        <svg class="jbai-robot-avatar" viewBox="0 0 48 48" aria-hidden="true">
+        <defs>
+          <linearGradient id="jbaiRobotMetalA" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset=".5" stop-color="#d9cfd2"/><stop offset="1" stop-color="#8d7b82"/></linearGradient>
+          <linearGradient id="jbaiRobotVisorA" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#2b171d"/><stop offset=".5" stop-color="#6f3045"/><stop offset="1" stop-color="#241116"/></linearGradient>
+          <filter id="jbaiRobotGlowA"><feGaussianBlur stdDeviation="1.1" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        </defs>
+        <g class="jbai-avatar-shell">
+          <path d="M24 6V3.5" stroke="#fff" stroke-width="1.5" stroke-linecap="round" opacity=".75"/>
+          <circle cx="24" cy="3" r="1.6" fill="#3ddc84" filter="url(#jbaiRobotGlowA)"/>
+          <rect x="7" y="9" width="34" height="30" rx="11" fill="url(#jbaiRobotMetalA)" stroke="#fff" stroke-opacity=".25"/>
+          <rect x="10" y="15" width="28" height="13" rx="6.5" fill="url(#jbaiRobotVisorA)"/>
+          <circle class="jbai-eye" cx="17.8" cy="21.5" r="2" fill="#fff" filter="url(#jbaiRobotGlowA)"/>
+          <circle class="jbai-eye" cx="30.2" cy="21.5" r="2" fill="#fff" filter="url(#jbaiRobotGlowA)"/>
+          <rect class="jbai-scan" x="13" y="19" width="22" height="1" rx=".5" fill="#fff" opacity=".2"/>
+          <path d="M18 32h12" stroke="#6d5961" stroke-width="1.3" stroke-linecap="round"/>
+        </g>
+      </svg>
       </span>
       <span class="jbai-header-text">
         <strong>JB TECH AI</strong>
@@ -1547,13 +1654,18 @@ footer{ padding:50px 0 40px; }
   fetch('/api/content')
     .then(function(res){ return res.json(); })
     .then(function(c){
+      function professionalizeCopy(val){
+        return String(val == null ? '' : val)
+          .replace(/\bfull[\s-]*stack\b/gi, 'desarrollador de software')
+          .replace(/\bdesarrollador\s+desarrollador\s+de\s+software\b/gi, 'desarrollador de software');
+      }
       function setText(id, val){
         var el = document.getElementById(id);
-        if(el && val) el.textContent = val;
+        if(el && val) el.textContent = professionalizeCopy(val);
       }
       function setHtml(id, val){
         var el = document.getElementById(id);
-        if(el && val) el.innerHTML = val;
+        if(el && val) el.innerHTML = professionalizeCopy(val);
       }
 
       if(c.hero){
@@ -1611,473 +1723,168 @@ footer{ padding:50px 0 40px; }
 <script>
 (function(){
   "use strict";
+  var launcher=document.getElementById('jbaiLauncher'),panel=document.getElementById('jbaiPanel'),closeBtn=document.getElementById('jbaiClose'),body=document.getElementById('jbaiBody'),quick=document.getElementById('jbaiQuick'),input=document.getElementById('jbaiInput'),sendBtn=document.getElementById('jbaiSend');
+  if(!launcher||!panel||!body)return;
+  var CHAT_ENDPOINT='/api/chat',LEAD_ENDPOINT='/api/lead',REQUEST_TIMEOUT_MS=25000,MAX_HISTORY_TO_SEND=20,HISTORY_KEY='jbaiHistory',VISUAL_KEY='jbaiVisualLog',SESSION_KEY='jbaiSessionId';
+  var isOpen=false,isSending=false,conversationStarted=false,history=[],visualLog=[],currentController=null,lastFailedHistory=null,projectServices=[];
+  var LEAD_SCORE_THRESHOLD=60,consentAsked=false,leadCaptured=false,leadContact=null,continuationAsked=false,leadFinalized=false;
+  var QUICK_LABELS={idea:'💡 Tengo una idea',web:'🌐 Quiero una página web',tienda:'🛒 Quiero una tienda online',app:'📱 Quiero una aplicación',sistema:'⚙️ Necesito un sistema para mi negocio',nose:'🤔 No sé qué necesito',pregunta:'💻 Tengo una pregunta de programación',jose:'👨‍💻 Quiero conocer a José'};
 
-  var launcher = document.getElementById('jbaiLauncher');
-  var panel    = document.getElementById('jbaiPanel');
-  var closeBtn = document.getElementById('jbaiClose');
-  var body     = document.getElementById('jbaiBody');
-  var quick    = document.getElementById('jbaiQuick');
-  var input    = document.getElementById('jbaiInput');
-  var sendBtn  = document.getElementById('jbaiSend');
-
-  if(!launcher || !panel || !body) return;
-
-  var CHAT_ENDPOINT = '/api/chat';
-  var LEAD_ENDPOINT = '/api/lead';
-  var REQUEST_TIMEOUT_MS = 25000;
-  var MAX_HISTORY_TO_SEND = 20;
-  var LEAD_SCORE_THRESHOLD = 60;
-  var VISUAL_LOG_KEY = 'jbaiVisualLog';
-
-  var isOpen = false;
-  var isSending = false;
-  var conversationStarted = false;
-  var consentAsked = false;
-  var leadSubmitted = false;
-  var currentController = null;
-  var currentRequestToken = 0;
-  var history = [];
-
-  var QUICK_LABELS = {
-    idea: '💡 Tengo una idea',
-    web: '🌐 Quiero una página web',
-    tienda: '🛒 Quiero una tienda online',
-    app: '📱 Quiero una aplicación',
-    sistema: '⚙️ Necesito un sistema para mi negocio',
-    nose: '🤔 No sé qué necesito',
-    pregunta: '💻 Tengo una pregunta de programación',
-    jose: '👨‍💻 Quiero conocer a José'
-  };
-
-  function generateId(){
-    if(window.crypto && typeof window.crypto.randomUUID === 'function'){
-      return 'sess_' + window.crypto.randomUUID().replace(/-/g, '');
-    }
-    var chars = 'abcdefghijklmnopqrstuvwxyz0123456789', out = '';
-    for(var i=0;i<32;i++) out += chars.charAt(Math.floor(Math.random()*chars.length));
-    return 'sess_' + out;
-  }
-
-  function getSessionId(){
-    try {
-      var existing = window.sessionStorage.getItem('jbaiSessionId');
-      if(existing) return existing;
-      var fresh = generateId();
-      window.sessionStorage.setItem('jbaiSessionId', fresh);
-      return fresh;
-    } catch(e){
-      if(!getSessionId._fallback) getSessionId._fallback = generateId();
-      return getSessionId._fallback;
-    }
-  }
-
-  var sessionId = getSessionId();
-
-  function openPanel(){
-    isOpen = true;
-    panel.classList.add('jbai-open');
-    launcher.setAttribute('aria-expanded','true');
-    launcher.classList.add('jbai-hide');
-    setTimeout(function(){ if(input) input.focus(); },200);
-  }
-
-  function closePanel(){
-    isOpen = false;
-    panel.classList.remove('jbai-open');
-    launcher.setAttribute('aria-expanded','false');
-    launcher.classList.remove('jbai-hide');
-  }
-
-  launcher.addEventListener('click',function(){ isOpen ? closePanel() : openPanel(); });
-  closeBtn && closeBtn.addEventListener('click',closePanel);
-  document.addEventListener('keydown',function(e){ if(e.key==='Escape' && isOpen) closePanel(); });
-
-  function scrollToBottom(){ body.scrollTop = body.scrollHeight; }
-
-  function redactForStorage(text){
-    return String(text || '')
-      .replace(/\+?\d[\d\s().-]{7,}/g,'[contacto]')
-      .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi,'[correo]');
-  }
-
-  function saveVisualLog(){
-    try { window.sessionStorage.setItem(VISUAL_LOG_KEY,JSON.stringify(visualLog.slice(-80))); } catch(e){}
-  }
-
-  var visualLog = [];
-  function addMessage(text,who,options){
-    options = options || {};
-    var div = document.createElement('div');
-    div.className = 'jbai-msg ' + (who === 'user' ? 'jbai-msg-user' : 'jbai-msg-bot');
-    div.textContent = text;
-    div.setAttribute('aria-live','polite');
-    body.appendChild(div);
-    if(!options.skipLog){
-      visualLog.push({ who: who, text: who === 'user' ? redactForStorage(text) : String(text || '') });
-      saveVisualLog();
-    }
-    scrollToBottom();
-    return div;
-  }
-
-  function restoreVisualLog(){
-    try {
-      var raw = window.sessionStorage.getItem(VISUAL_LOG_KEY);
-      if(!raw) return;
-      var saved = JSON.parse(raw);
-      if(!Array.isArray(saved) || !saved.length) return;
-      visualLog = saved;
-      saved.forEach(function(m){ addMessage(m.text,m.who,{skipLog:true}); });
-      conversationStarted = true;
-      if(quick) quick.style.display='none';
-    } catch(e){}
-  }
-
-  function botSay(text){
-    addMessage(text,'bot');
-    history.push({role:'assistant',content:text});
-  }
-
-  function userSay(text,historyText){
-    addMessage(text,'user');
-    history.push({role:'user',content:historyText || text});
-  }
-
-  function showThinking(){
-    var wrap = document.createElement('div');
-    wrap.className = 'jbai-typing';
-    wrap.id = 'jbaiThinking';
-    wrap.innerHTML = '<span></span><span></span><span></span>';
-    body.appendChild(wrap);
-    scrollToBottom();
-    return wrap;
-  }
-
-  function removeThinking(el){ if(el && el.parentNode) el.parentNode.removeChild(el); }
-
-  function showRetryButton(){
-    var row=document.createElement('div');
-    row.className='jbai-quick';
-    row.id='jbaiRetryRow';
-    var btn=document.createElement('button');
-    btn.type='button'; btn.className='jbai-chip'; btn.textContent='↻ Reintentar';
-    row.appendChild(btn); body.appendChild(row); scrollToBottom();
-    btn.addEventListener('click',function(){
-      if(row.parentNode) row.parentNode.removeChild(row);
-      sendCurrentHistory();
-    });
-  }
-
-  function showCancelButton(wrap){
-    var btn=document.createElement('button');
-    btn.type='button'; btn.className='jbai-chip'; btn.textContent='Cancelar';
-    btn.style.marginLeft='8px';
-    wrap && wrap.appendChild(btn);
-    btn.addEventListener('click',function(){
-      if(currentController){ currentController.abort(); }
-    });
-    return btn;
-  }
-
-  function setSendingState(sending){
-    isSending=sending;
-    if(sendBtn) sendBtn.disabled=sending;
-    if(input) input.disabled=sending;
-  }
-
-  function hideQuickChipsIfFirstMessage(){
-    if(!conversationStarted && quick){ quick.style.display='none'; conversationStarted=true; }
-  }
-
-  function friendlyErrorFor(status,backendMessage){
-    var internal = /chat\.js|ai router|stack|gemini|upstash|supabase|api key|operation was aborted/i;
-    if(backendMessage && !internal.test(backendMessage)) return backendMessage;
-    if(status===429) return 'Has alcanzado temporalmente el límite de mensajes. Inténtalo nuevamente en unos minutos.';
-    if(status===400) return 'No pude procesar ese mensaje. Prueba contándome la idea de otra manera.';
-    if(status===502 || status===503 || status===504) return 'El asistente está teniendo una demora temporal. Puedes reintentarlo en unos segundos.';
-    return 'No pude conectar con el asistente en este momento. Puedes intentarlo nuevamente o escribirnos por WhatsApp.';
-  }
-
-  async function askBackend(messagesToSend,controller){
-    var ownController = controller || (typeof AbortController!=='undefined' ? new AbortController() : null);
-    var timeoutId = ownController ? setTimeout(function(){ ownController.abort(); },REQUEST_TIMEOUT_MS) : null;
-    currentController = ownController;
-    try {
-      var response = await fetch(CHAT_ENDPOINT,{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({sessionId:sessionId,messages:(messagesToSend || history).slice(-MAX_HISTORY_TO_SEND)}),
-        signal:ownController ? ownController.signal : undefined
-      });
-      var data=null;
-      try{ data=await response.json(); }catch(e){ data=null; }
-      if(!response.ok || !data || data.ok!==true){
-        return {ok:false,status:response.status,message:friendlyErrorFor(response.status,data && data.message)};
-      }
-      return {ok:true,reply:data.reply,leadScore:data.meta && typeof data.meta.leadScore==='number' ? data.meta.leadScore : null};
-    }catch(err){
-      var aborted=err && err.name==='AbortError';
-      return {ok:false,status:0,cancelled:aborted && currentController===ownController,message:aborted?'': 'No pudimos conectar con el asistente. Verifica tu conexión e inténtalo nuevamente.'};
-    }finally{
-      if(timeoutId) clearTimeout(timeoutId);
-      if(currentController===ownController) currentController=null;
-    }
-  }
-
-  async function sendCurrentHistory(){
-    if(isSending) return;
-    setSendingState(true);
-    var token=++currentRequestToken;
-    var thinking=showThinking();
-    var cancelBtn=showCancelButton(thinking);
-    var result=await askBackend(history);
-    removeThinking(thinking);
-    if(cancelBtn && cancelBtn.parentNode) cancelBtn.parentNode.removeChild(cancelBtn);
-    if(token!==currentRequestToken){ setSendingState(false); return; }
-    setSendingState(false);
-    if(result.ok){
-      botSay(result.reply);
-      if(!consentAsked && !leadSubmitted && typeof result.leadScore==='number' && result.leadScore>=LEAD_SCORE_THRESHOLD){
-        consentAsked=true;
-        setTimeout(showConsentPrompt,350);
-      }
-    }else if(!result.cancelled){
-      botSay(result.message);
-      showRetryButton();
-    }
-    if(input) input.focus();
-  }
-
-  async function submitUserMessage(text){
-    if(!text || isSending) return;
-    hideQuickChipsIfFirstMessage();
-    userSay(text);
-    await sendCurrentHistory();
-  }
-
-  function showConsentPrompt(){
-    botSay('Para poder dar seguimiento a tu proyecto necesitamos algunos datos de contacto. Antes de continuar, ¿autorizas a JB TECH a tratar la información que compartas para atender tu solicitud y contactarte sobre el proyecto?');
-    var row=document.createElement('div'); row.className='jbai-quick'; row.style.marginTop='2px';
-    var link=document.createElement('a'); link.className='jbai-chip'; link.href='/politica-privacidad.html'; link.target='_blank'; link.rel='noopener'; link.textContent='📄 Consultar política de privacidad';
-    var yes=document.createElement('button'); yes.type='button'; yes.className='jbai-chip'; yes.textContent='✅ Autorizo el tratamiento de mis datos';
-    var no=document.createElement('button'); no.type='button'; no.className='jbai-chip'; no.textContent='❌ No autorizo';
-    row.appendChild(link); row.appendChild(yes); row.appendChild(no); body.appendChild(row); scrollToBottom();
-    function cleanup(){ if(row.parentNode) row.parentNode.removeChild(row); }
-    yes.addEventListener('click',function(){ cleanup(); userSay('✅ Autorizo el tratamiento de mis datos','Autorizo el tratamiento de mis datos.'); showContactForm(); });
-    no.addEventListener('click',function(){ cleanup(); userSay('❌ No autorizo','No autorizo el tratamiento de mis datos.'); botSay('Está bien. Podemos seguir conversando sin recopilar datos de contacto.'); });
-  }
-
-  var COUNTRY_CODES = [
-    ['🇦🇫 Afganistán','+93'],
-    ['🇦🇱 Albania','+355'],
-    ['🇩🇪 Alemania','+49'],
-    ['🇦🇩 Andorra','+376'],
-    ['🇦🇴 Angola','+244'],
-    ['🇦🇬 Antigua y Barbuda','+1'],
-    ['🇸🇦 Arabia Saudita','+966'],
-    ['🇩🇿 Argelia','+213'],
-    ['🇦🇷 Argentina','+54'],
-    ['🇦🇲 Armenia','+374'],
-    ['🇦🇺 Australia','+61'],
-    ['🇦🇹 Austria','+43'],
-    ['🇦🇿 Azerbaiyán','+994'],
-    ['🇧🇸 Bahamas','+1'],
-    ['🇧🇭 Baréin','+973'],
-    ['🇧🇩 Bangladés','+880'],
-    ['🇧🇧 Barbados','+1'],
-    ['🇧🇪 Bélgica','+32'],
-    ['🇧🇿 Belice','+501'],
-    ['🇧🇯 Benín','+229'],
-    ['🇧🇴 Bolivia','+591'],
-    ['🇧🇦 Bosnia y Herzegovina','+387'],
-    ['🇧🇼 Botsuana','+267'],
-    ['🇧🇷 Brasil','+55'],
-    ['🇧🇳 Brunéi','+673'],
-    ['🇧🇬 Bulgaria','+359'],
-    ['🇧🇫 Burkina Faso','+226'],
-    ['🇧🇮 Burundi','+257'],
-    ['🇨🇲 Camerún','+237'],
-    ['🇨🇦 Canadá','+1'],
-    ['🇨🇱 Chile','+56'],
-    ['🇨🇳 China','+86'],
-    ['🇨🇾 Chipre','+357'],
-    ['🇨🇴 Colombia','+57'],
-    ['🇨🇬 Congo','+242'],
-    ['🇨🇷 Costa Rica','+506'],
-    ['🇭🇷 Croacia','+385'],
-    ['🇨🇺 Cuba','+53'],
-    ['🇨🇿 Chequia','+420'],
-    ['🇩🇰 Dinamarca','+45'],
-    ['🇩🇴 Rep. Dominicana','+1'],
-    ['🇪🇨 Ecuador','+593'],
-    ['🇪🇬 Egipto','+20'],
-    ['🇸🇻 El Salvador','+503'],
-    ['🇦🇪 Emiratos Árabes Unidos','+971'],
-    ['🇸🇰 Eslovaquia','+421'],
-    ['🇸🇮 Eslovenia','+386'],
-    ['🇪🇸 España','+34'],
-    ['🇺🇸 Estados Unidos','+1'],
-    ['🇪🇪 Estonia','+372'],
-    ['🇵🇭 Filipinas','+63'],
-    ['🇫🇮 Finlandia','+358'],
-    ['🇫🇷 Francia','+33'],
-    ['🇬🇪 Georgia','+995'],
-    ['🇬🇭 Ghana','+233'],
-    ['🇬🇷 Grecia','+30'],
-    ['🇬🇹 Guatemala','+502'],
-    ['🇬🇾 Guyana','+592'],
-    ['🇭🇹 Haití','+509'],
-    ['🇭🇳 Honduras','+504'],
-    ['🇭🇺 Hungría','+36'],
-    ['🇮🇳 India','+91'],
-    ['🇮🇩 Indonesia','+62'],
-    ['🇮🇪 Irlanda','+353'],
-    ['🇮🇸 Islandia','+354'],
-    ['🇮🇱 Israel','+972'],
-    ['🇮🇹 Italia','+39'],
-    ['🇯🇲 Jamaica','+1'],
-    ['🇯🇵 Japón','+81'],
-    ['🇯🇴 Jordania','+962'],
-    ['🇰🇿 Kazajistán','+7'],
-    ['🇰🇪 Kenia','+254'],
-    ['🇰🇷 Corea del Sur','+82'],
-    ['🇰🇼 Kuwait','+965'],
-    ['🇱🇻 Letonia','+371'],
-    ['🇱🇧 Líbano','+961'],
-    ['🇱🇹 Lituania','+370'],
-    ['🇱🇺 Luxemburgo','+352'],
-    ['🇲🇾 Malasia','+60'],
-    ['🇲🇹 Malta','+356'],
-    ['🇲🇦 Marruecos','+212'],
-    ['🇲🇽 México','+52'],
-    ['🇲🇩 Moldavia','+373'],
-    ['🇲🇨 Mónaco','+377'],
-    ['🇲🇳 Mongolia','+976'],
-    ['🇲🇪 Montenegro','+382'],
-    ['🇳🇱 Países Bajos','+31'],
-    ['🇳🇿 Nueva Zelanda','+64'],
-    ['🇳🇮 Nicaragua','+505'],
-    ['🇳🇬 Nigeria','+234'],
-    ['🇳🇴 Noruega','+47'],
-    ['🇵🇰 Pakistán','+92'],
-    ['🇵🇦 Panamá','+507'],
-    ['🇵🇾 Paraguay','+595'],
-    ['🇵🇪 Perú','+51'],
-    ['🇵🇱 Polonia','+48'],
-    ['🇵🇹 Portugal','+351'],
-    ['🇶🇦 Catar','+974'],
-    ['🇬🇧 Reino Unido','+44'],
-    ['🇷🇴 Rumania','+40'],
-    ['🇷🇺 Rusia','+7'],
-    ['🇷🇸 Serbia','+381'],
-    ['🇸🇬 Singapur','+65'],
-    ['🇿🇦 Sudáfrica','+27'],
-    ['🇸🇪 Suecia','+46'],
-    ['🇨🇭 Suiza','+41'],
-    ['🇹🇼 Taiwán','+886'],
-    ['🇹🇭 Tailandia','+66'],
-    ['🇹🇷 Turquía','+90'],
-    ['🇺🇦 Ucrania','+380'],
-    ['🇺🇾 Uruguay','+598'],
-    ['🇻🇪 Venezuela','+58'],
-    ['🇻🇳 Vietnam','+84']
+  var COUNTRIES=[
+    ['🇦🇫','Afganistán','+93'],['🇦🇱','Albania','+355'],['🇩🇪','Alemania','+49'],['🇦🇩','Andorra','+376'],['🇦🇴','Angola','+244'],['🇦🇬','Antigua y Barbuda','+1'],['🇸🇦','Arabia Saudita','+966'],['🇩🇿','Argelia','+213'],['🇦🇷','Argentina','+54'],['🇦🇲','Armenia','+374'],['🇦🇺','Australia','+61'],['🇦🇹','Austria','+43'],['🇦🇿','Azerbaiyán','+994'],['🇧🇸','Bahamas','+1'],['🇧🇭','Baréin','+973'],['🇧🇩','Bangladés','+880'],['🇧🇧','Barbados','+1'],['🇧🇪','Bélgica','+32'],['🇧🇿','Belice','+501'],['🇧🇯','Benín','+229'],['🇧🇴','Bolivia','+591'],['🇧🇦','Bosnia y Herzegovina','+387'],['🇧🇼','Botsuana','+267'],['🇧🇷','Brasil','+55'],['🇧🇳','Brunéi','+673'],['🇧🇬','Bulgaria','+359'],['🇧🇫','Burkina Faso','+226'],['🇧🇮','Burundi','+257'],['🇨🇲','Camerún','+237'],['🇨🇦','Canadá','+1'],['🇨🇱','Chile','+56'],['🇨🇳','China','+86'],['🇨🇾','Chipre','+357'],['🇨🇴','Colombia','+57'],['🇨🇬','Congo','+242'],['🇨🇷','Costa Rica','+506'],['🇭🇷','Croacia','+385'],['🇨🇺','Cuba','+53'],['🇨🇿','Chequia','+420'],['🇩🇰','Dinamarca','+45'],['🇩🇴','Rep. Dominicana','+1'],['🇪🇨','Ecuador','+593'],['🇪🇬','Egipto','+20'],['🇸🇻','El Salvador','+503'],['🇦🇪','Emiratos Árabes Unidos','+971'],['🇸🇰','Eslovaquia','+421'],['🇸🇮','Eslovenia','+386'],['🇪🇸','España','+34'],['🇺🇸','Estados Unidos','+1'],['🇪🇪','Estonia','+372'],['🇵🇭','Filipinas','+63'],['🇫🇮','Finlandia','+358'],['🇫🇷','Francia','+33'],['🇬🇪','Georgia','+995'],['🇬🇭','Ghana','+233'],['🇬🇷','Grecia','+30'],['🇬🇹','Guatemala','+502'],['🇬🇾','Guyana','+592'],['🇭🇹','Haití','+509'],['🇭🇳','Honduras','+504'],['🇭🇺','Hungría','+36'],['🇮🇳','India','+91'],['🇮🇩','Indonesia','+62'],['🇮🇪','Irlanda','+353'],['🇮🇸','Islandia','+354'],['🇮🇱','Israel','+972'],['🇮🇹','Italia','+39'],['🇯🇲','Jamaica','+1'],['🇯🇵','Japón','+81'],['🇯🇴','Jordania','+962'],['🇰🇿','Kazajistán','+7'],['🇰🇪','Kenia','+254'],['🇰🇷','Corea del Sur','+82'],['🇰🇼','Kuwait','+965'],['🇱🇻','Letonia','+371'],['🇱🇧','Líbano','+961'],['🇱🇹','Lituania','+370'],['🇱🇺','Luxemburgo','+352'],['🇲🇾','Malasia','+60'],['🇲🇹','Malta','+356'],['🇲🇦','Marruecos','+212'],['🇲🇽','México','+52'],['🇲🇩','Moldavia','+373'],['🇲🇨','Mónaco','+377'],['🇲🇳','Mongolia','+976'],['🇲🇪','Montenegro','+382'],['🇳🇱','Países Bajos','+31'],['🇳🇿','Nueva Zelanda','+64'],['🇳🇮','Nicaragua','+505'],['🇳🇬','Nigeria','+234'],['🇳🇴','Noruega','+47'],['🇵🇰','Pakistán','+92'],['🇵🇦','Panamá','+507'],['🇵🇾','Paraguay','+595'],['🇵🇪','Perú','+51'],['🇵🇱','Polonia','+48'],['🇵🇹','Portugal','+351'],['🇶🇦','Catar','+974'],['🇬🇧','Reino Unido','+44'],['🇷🇴','Rumania','+40'],['🇷🇺','Rusia','+7'],['🇷🇸','Serbia','+381'],['🇸🇬','Singapur','+65'],['🇿🇦','Sudáfrica','+27'],['🇸🇪','Suecia','+46'],['🇨🇭','Suiza','+41'],['🇹🇼','Taiwán','+886'],['🇹🇭','Tailandia','+66'],['🇹🇷','Turquía','+90'],['🇺🇦','Ucrania','+380'],['🇺🇾','Uruguay','+598'],['🇻🇪','Venezuela','+58'],['🇻🇳','Vietnam','+84']
   ];
 
-  function onlyDigits(value){ return String(value||'').replace(/\D/g,''); }
-  function normalizeDial(value){
-    var digits=onlyDigits(value);
-    return digits ? '+'+digits : '';
-  }
-
-  function showContactForm(){
-    var wrap=document.createElement('div'); wrap.className='jbai-inline-form';
-    var nameInput=document.createElement('input'); nameInput.className='jbai-input'; nameInput.type='text'; nameInput.placeholder='Tu nombre'; nameInput.maxLength=100; nameInput.setAttribute('aria-label','Tu nombre');
-    var country=document.createElement('select'); country.className='jbai-input'; country.setAttribute('aria-label','País');
-    COUNTRY_CODES.forEach(function(item){ var o=document.createElement('option'); o.value=item[1]; o.textContent=item[0]+' ('+item[1]+')'; country.appendChild(o); });
-    var dial=document.createElement('input'); dial.className='jbai-input'; dial.type='text'; dial.inputMode='tel'; dial.value='+57'; dial.placeholder='+57'; dial.maxLength=8; dial.setAttribute('aria-label','Indicativo internacional');
-    var phone=document.createElement('input'); phone.className='jbai-input'; phone.type='tel'; phone.inputMode='tel'; phone.placeholder='Número de WhatsApp'; phone.maxLength=20; phone.setAttribute('aria-label','Número de WhatsApp');
-    var email=document.createElement('input'); email.className='jbai-input'; email.type='email'; email.placeholder='Correo electrónico (opcional)'; email.maxLength=100; email.setAttribute('aria-label','Correo electrónico opcional');
-    var preview=document.createElement('div'); preview.style.cssText='font-size:.78rem;color:var(--muted);font-family:var(--font-mono);margin:4px 0 8px;'; preview.setAttribute('aria-live','polite');
-    var submit=document.createElement('button'); submit.type='button'; submit.className='jbai-chip'; submit.textContent='Enviar mis datos';
-    var note=document.createElement('div'); note.style.cssText='font-size:.72rem;color:var(--muted);line-height:1.4;margin-top:4px;'; note.textContent='Puedes escribir el indicativo manualmente si tu país no aparece en la lista.';
-
-    wrap.appendChild(nameInput); wrap.appendChild(country); wrap.appendChild(dial); wrap.appendChild(phone); wrap.appendChild(email); wrap.appendChild(preview); wrap.appendChild(submit); wrap.appendChild(note); body.appendChild(wrap); scrollToBottom(); nameInput.focus();
-
-    function updateCode(){ dial.value=country.value; updatePreview(); }
-    function updatePreview(){
-      var d=normalizeDial(dial.value), n=onlyDigits(phone.value);
-      preview.textContent=n ? 'Número internacional: '+d+' '+n : 'Número internacional: '+(d||'—');
+  function generateId(){if(window.crypto&&typeof window.crypto.randomUUID==='function')return'sess_'+window.crypto.randomUUID().replace(/-/g,'');var c='abcdefghijklmnopqrstuvwxyz0123456789',o='';for(var i=0;i<32;i++)o+=c.charAt(Math.floor(Math.random()*c.length));return'sess_'+o;}
+  function getSessionId(){try{var e=sessionStorage.getItem(SESSION_KEY);if(e)return e;var f=generateId();sessionStorage.setItem(SESSION_KEY,f);return f;}catch(e){if(!getSessionId._fallback)getSessionId._fallback=generateId();return getSessionId._fallback;}}
+  var sessionId=getSessionId();
+  function openPanel(){isOpen=true;panel.classList.add('jbai-open');launcher.setAttribute('aria-expanded','true');launcher.classList.add('jbai-hide');setTimeout(function(){if(input)input.focus();},200);}
+  function closePanel(){isOpen=false;panel.classList.remove('jbai-open');launcher.setAttribute('aria-expanded','false');launcher.classList.remove('jbai-hide');}
+  launcher.addEventListener('click',function(){isOpen?closePanel():openPanel();});if(closeBtn)closeBtn.addEventListener('click',closePanel);document.addEventListener('keydown',function(e){if(e.key==='Escape'&&isOpen)closePanel();});
+  function scrollToBottom(){body.scrollTop=body.scrollHeight;}
+  function persistState(){try{sessionStorage.setItem(HISTORY_KEY,JSON.stringify(history.slice(-MAX_HISTORY_TO_SEND)));sessionStorage.setItem(VISUAL_KEY,JSON.stringify(visualLog.slice(-40)));sessionStorage.setItem('jbaiLeadState',JSON.stringify({consentAsked:consentAsked,leadCaptured:leadCaptured,continuationAsked:continuationAsked,leadFinalized:leadFinalized,leadContactPresent:!!leadCaptured}));}catch(e){}}
+  function addMessage(text,who,opts){opts=opts||{};var div=document.createElement('div');div.className='jbai-msg '+(who==='user'?'jbai-msg-user':'jbai-msg-bot');div.textContent=text;body.appendChild(div);if(!opts.skipVisualLog){visualLog.push({who:who,text:opts.redactedText||text});persistState();}scrollToBottom();return div;}
+  function botSay(text,opts){opts=opts||{};addMessage(text,'bot',opts);if(!opts.skipHistory){history.push({role:'assistant',content:opts.historyText||text});persistState();}}
+  function userSay(text,opts){opts=opts||{};addMessage(text,'user',opts);if(!opts.skipHistory){history.push({role:'user',content:opts.historyText||text});persistState();}}
+  function showTyping(){var t=document.createElement('div');t.className='jbai-typing';t.id='jbaiTyping';t.innerHTML='<span></span><span></span><span></span>';body.appendChild(t);scrollToBottom();return t;}
+  function removeTyping(t){if(t&&t.parentNode)t.parentNode.removeChild(t);}
+  function showThinking(){removeThinking();var w=document.createElement('div');w.className='jbai-thinking';w.id='jbaiThinking';var l=document.createElement('span');l.textContent='JB TECH AI está pensando…';var b=document.createElement('button');b.type='button';b.className='jbai-thinking-cancel';b.textContent='Cancelar';b.addEventListener('click',function(){if(currentController)currentController.abort();});w.appendChild(l);w.appendChild(b);body.appendChild(w);scrollToBottom();}
+  function removeThinking(){var e=document.getElementById('jbaiThinking');if(e&&e.parentNode)e.parentNode.removeChild(e);}
+  function showRetryButton(){var old=document.getElementById('jbaiRetry');if(old&&old.parentNode)old.parentNode.removeChild(old);var row=document.createElement('div');row.className='jbai-quick';row.id='jbaiRetry';var b=document.createElement('button');b.type='button';b.className='jbai-chip';b.textContent='↻ Reintentar';b.addEventListener('click',async function(){if(isSending||!lastFailedHistory)return;if(row.parentNode)row.parentNode.removeChild(row);await sendCurrentHistoryToBackend(lastFailedHistory);});row.appendChild(b);body.appendChild(row);scrollToBottom();}
+  function hideQuickChipsIfFirstMessage(){if(!conversationStarted&&quick){quick.style.display='none';conversationStarted=true;setTimeout(renderServicePicker,0);}}
+  function setSendingState(s){isSending=s;if(sendBtn)sendBtn.disabled=s;if(input)input.disabled=s;}
+  function friendlyErrorFor(status,msg){var internal=/chat\.js error|ai router|generativelanguage|api key|stack trace|this operation was aborted/i;if(msg&&!internal.test(String(msg)))return msg;if(status===429)return'Has alcanzado temporalmente el límite de mensajes. Inténtalo nuevamente en unos minutos.';if(status===400)return'No pudimos procesar ese mensaje. Intenta reformularlo.';if(status===502||status===503||status===504)return'El asistente está teniendo una demora temporal. Puedes reintentar en unos segundos.';return'El asistente no está disponible en este momento. Intenta de nuevo en unos segundos o escríbenos por WhatsApp.';}
+  async function askBackend(snapshot){var controller=typeof AbortController!=='undefined'?new AbortController():null;currentController=controller;var timer=controller?setTimeout(function(){controller.abort();},REQUEST_TIMEOUT_MS):null;try{var r=await fetch(CHAT_ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:sessionId,messages:(snapshot||history).slice(-MAX_HISTORY_TO_SEND)}),signal:controller?controller.signal:undefined});var d=null;try{d=await r.json();}catch(e){}if(!r.ok||!d||d.ok!==true)return{ok:false,message:friendlyErrorFor(r.status,d&&d.message),status:r.status};return{ok:true,reply:d.reply,leadScore:d.meta&&typeof d.meta.leadScore==='number'?d.meta.leadScore:null};}catch(e){var a=e&&e.name==='AbortError';return{ok:false,cancelled:a,message:a?'La solicitud fue cancelada.':'No pudimos conectar con el asistente. Verifica tu conexión e inténtalo nuevamente.'};}finally{if(timer)clearTimeout(timer);if(currentController===controller)currentController=null;}}
+  async function sendCurrentHistoryToBackend(snapshot){if(isSending)return;setSendingState(true);showThinking();var r=await askBackend(snapshot||history);removeThinking();setSendingState(false);if(r.ok){lastFailedHistory=null;botSay(r.reply);if(!consentAsked&&!leadCaptured&&typeof r.leadScore==='number'&&r.leadScore>=LEAD_SCORE_THRESHOLD){consentAsked=true;persistState();setTimeout(showConsentPrompt,350);}else if(leadCaptured&&!leadFinalized){setTimeout(showFinishPrompt,250);}}else if(r.cancelled){botSay('Solicitud cancelada. Puedes enviar el mensaje nuevamente cuando quieras.');lastFailedHistory=null;}else{lastFailedHistory=(snapshot||history).slice();botSay(r.message);showRetryButton();}if(input)input.focus();return r;}
+  async function submitUserMessage(text){
+    if(!text||isSending)return;
+    hideQuickChipsIfFirstMessage();
+    detectProjectServices(text);
+    if(leadFinalized){leadFinalized=false;persistState();}
+    userSay(text);
+    if(leadCaptured&&isCompletionIntent(text)){
+      showFinishPrompt();
+      if(input)input.focus();
+      return;
     }
-    country.addEventListener('change',updateCode); dial.addEventListener('input',updatePreview); phone.addEventListener('input',updatePreview); updatePreview();
+    await sendCurrentHistoryToBackend(history);
+  }
 
-    submit.addEventListener('click',async function(){
-      var name=(nameInput.value||'').trim();
-      var dialCode=normalizeDial(dial.value);
-      var phoneNumber=onlyDigits(phone.value);
-      var emailValue=(email.value||'').trim();
-      if(!name){ botSay('Necesito tu nombre para continuar.'); nameInput.focus(); return; }
-      if(!phoneNumber && !emailValue){ botSay('Déjame al menos un WhatsApp o un correo para poder contactarte.'); return; }
-      if(phoneNumber && (!dialCode || dialCode.length<2)){ botSay('Revisa el indicativo internacional. Por ejemplo: +57 para Colombia.'); dial.focus(); return; }
-      if(emailValue && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailValue)){ botSay('Revisa el correo electrónico o déjalo vacío si prefieres que te contactemos por WhatsApp.'); email.focus(); return; }
+  function showConsentPrompt(){if(leadCaptured)return;botSay('Para poder dar seguimiento a tu proyecto necesitamos algunos datos de contacto. Antes de continuar, ¿autorizas a JB TECH a tratar la información que compartas para atender tu solicitud y contactarte sobre el proyecto?');var row=document.createElement('div');row.className='jbai-quick';row.style.marginTop='2px';var link=document.createElement('a');link.className='jbai-chip';link.href='/politica-privacidad.html';link.target='_blank';link.rel='noopener';link.textContent='📄 Consultar política de privacidad';var yes=document.createElement('button');yes.type='button';yes.className='jbai-chip';yes.textContent='✅ Autorizo el tratamiento de mis datos';var no=document.createElement('button');no.type='button';no.className='jbai-chip';no.textContent='❌ No autorizo';row.appendChild(link);row.appendChild(yes);row.appendChild(no);body.appendChild(row);scrollToBottom();function cleanup(){if(row.parentNode)row.parentNode.removeChild(row);}yes.addEventListener('click',function(){cleanup();userSay('✅ Autorizo el tratamiento de mis datos');showContactForm();});no.addEventListener('click',function(){cleanup();userSay('❌ No autorizo');botSay('Está bien. Podemos continuar sin recopilar esos datos.');});}
 
-      submit.disabled=true; nameInput.disabled=true; country.disabled=true; dial.disabled=true; phone.disabled=true; email.disabled=true;
-      var contact={name:name};
-      if(phoneNumber) contact.whatsapp=onlyDigits(dialCode)+phoneNumber;
-      if(emailValue) contact.email=emailValue;
-      var typing=showThinking();
-      var leadResult=await sendLead(contact);
-      removeThinking(typing);
-      if(wrap.parentNode) wrap.parentNode.removeChild(wrap);
-      userSay(name+' — '+(contact.whatsapp || emailValue),'Ya completé el formulario de contacto. Mis datos fueron enviados para seguimiento.');
-      leadSubmitted=true;
+  function injectContactStyles(){if(document.getElementById('jbaiEnhancedStyles'))return;var style=document.createElement('style');style.id='jbaiEnhancedStyles';style.textContent=".jbai-contact-method{display:flex;gap:7px;margin-bottom:8px;flex-wrap:wrap}.jbai-contact-method button{flex:1;min-width:110px}.jbai-phone-grid{display:flex;flex-direction:column;gap:7px;width:100%;margin-bottom:7px}.jbai-phone-grid .jbai-input{width:100%;min-width:0}.jbai-phone-grid select,.jbai-phone-grid input{width:100%;box-sizing:border-box}.jbai-phone-preview{font-size:12px;opacity:.75;margin:2px 0 8px;padding-left:2px}.jbai-thinking{display:flex;align-items:center;justify-content:space-between;gap:10px;align-self:flex-start;margin:8px 0;padding:9px 12px;border:1px solid rgba(128,128,128,.25);border-radius:12px;font-size:12px;opacity:.9}.jbai-thinking-cancel{border:1px solid rgba(128,128,128,.35);background:transparent;border-radius:8px;padding:5px 9px;cursor:pointer;font:inherit}.jbai-thinking-cancel:hover{transform:translateY(-1px)}@media(max-width:520px){.jbai-phone-grid{display:flex;flex-direction:column}}";document.head.appendChild(style);}
+  function normalizeDialCode(v){var r=String(v||'').trim().replace(/[^0-9+]/g,'');if(!r)return'';if(r.charAt(0)!=='+')r='+'+r;return'+'+r.slice(1).replace(/\+/g,'');}
+  function normalizePhone(v){return String(v||'').replace(/\D/g,'');}
+  function buildInternational(dial,phone){var d=normalizeDialCode(dial),p=normalizePhone(phone);if(!d||!p)return'';var dg=d.slice(1);if(p.indexOf(dg)===0&&p.length>dg.length)p=p.slice(dg.length);return d+p;}
 
-      if(leadResult.ok && leadResult.stored){
-        if(leadResult.notified && (leadResult.notified.email || leadResult.notified.whatsapp)){
-          botSay('Perfecto. Ya tenemos tus datos y el proyecto quedó registrado para seguimiento. Si quieres, podemos seguir definiendo detalles mientras nuestro equipo lo revisa.');
-        }else{
-          botSay('Tu proyecto quedó registrado correctamente. La información está guardada, aunque una de las notificaciones no pudo enviarse en este momento.');
-        }
-        setTimeout(function(){
-          botSay('¿Quieres agregar alguna función, estilo visual, referencia, integración o detalle adicional a tu proyecto?');
-        },250);
-      }else{
-        botSay('Tuvimos un problema al guardar tus datos. Puedes intentarlo nuevamente o escribirnos directamente por WhatsApp.');
-      }
+  function showContactForm(){injectContactStyles();var formStartedAt=Date.now();var wrap=document.createElement('div');wrap.className='jbai-inline-form';var honeypot=document.createElement('input');honeypot.type='text';honeypot.name='website';honeypot.tabIndex=-1;honeypot.autocomplete='off';honeypot.setAttribute('aria-hidden','true');honeypot.style.cssText='position:absolute;left:-10000px;top:auto;width:1px;height:1px;opacity:0;pointer-events:none';var name=document.createElement('input');name.className='jbai-input';name.type='text';name.placeholder='Tu nombre';name.maxLength=100;name.setAttribute('aria-label','Tu nombre');var methods=document.createElement('div');methods.className='jbai-contact-method';var wa=document.createElement('button');wa.type='button';wa.className='jbai-chip';wa.textContent='📱 WhatsApp';var mail=document.createElement('button');mail.type='button';mail.className='jbai-chip';mail.textContent='✉️ Correo';methods.appendChild(wa);methods.appendChild(mail);
+    var grid=document.createElement('div');grid.className='jbai-phone-grid';var country=document.createElement('select');country.className='jbai-input';country.setAttribute('aria-label','País');COUNTRIES.forEach(function(c){var o=document.createElement('option');o.value=c[2];o.textContent=c[0]+' '+c[1]+' ('+c[2]+')';country.appendChild(o);});country.value='+57';
+    var dial=document.createElement('input');dial.className='jbai-input';dial.type='text';dial.value='+57';dial.inputMode='tel';dial.maxLength=7;dial.setAttribute('aria-label','Indicativo internacional');dial.title='Puedes seleccionar el país o escribir el indicativo manualmente';
+    var phone=document.createElement('input');phone.className='jbai-input';phone.type='tel';phone.placeholder='300 000 0000';phone.inputMode='tel';phone.maxLength=20;phone.setAttribute('aria-label','Número de WhatsApp');grid.appendChild(country);grid.appendChild(dial);grid.appendChild(phone);
+    var preview=document.createElement('div');preview.className='jbai-phone-preview';preview.setAttribute('aria-live','polite');preview.textContent='Número internacional: +57';var email=document.createElement('input');email.className='jbai-input';email.type='email';email.placeholder='Tu correo electrónico';email.maxLength=160;email.setAttribute('aria-label','Correo electrónico');email.style.display='none';var submit=document.createElement('button');submit.type='button';submit.className='jbai-chip';submit.textContent='Enviar mis datos';wrap.appendChild(name);wrap.appendChild(methods);wrap.appendChild(grid);wrap.appendChild(preview);wrap.appendChild(email);wrap.appendChild(honeypot);wrap.appendChild(submit);body.appendChild(wrap);scrollToBottom();name.focus();
+    var method='whatsapp';function refresh(){var isWa=method==='whatsapp';grid.style.display=isWa?'grid':'none';preview.style.display=isWa?'block':'none';email.style.display=isWa?'none':'block';wa.style.opacity=isWa?'1':'.65';mail.style.opacity=isWa?'.65':'1';}refresh();wa.addEventListener('click',function(){method='whatsapp';refresh();});mail.addEventListener('click',function(){method='email';refresh();email.focus();});country.addEventListener('change',function(){dial.value=country.value;updatePreview();});dial.addEventListener('input',function(){dial.value=normalizeDialCode(dial.value);updatePreview();});phone.addEventListener('input',updatePreview);function updatePreview(){var n=buildInternational(dial.value,phone.value);preview.textContent=n?'Número internacional: '+n:'Número internacional: —';}
+    submit.addEventListener('click',async function(){var n=(name.value||'').trim();if(!n){botSay('Necesito tu nombre para continuar.');return;}var contact={name:n};if(method==='email'){var em=(email.value||'').trim();if(!em||em.indexOf('@')===-1){botSay('Escribe un correo electrónico válido para continuar.');return;}contact.email=em;}else{var intl=buildInternational(dial.value,phone.value);if(!intl||intl.replace(/\D/g,'').length<7){botSay('Revisa el país, el indicativo y el número de WhatsApp.');return;}contact.whatsapp=intl;}
+      submit.disabled=true;name.disabled=true;country.disabled=true;dial.disabled=true;phone.disabled=true;email.disabled=true;wa.disabled=true;mail.disabled=true;var typing=showTyping();var lead=await sendLead(contact,false,false,{website:honeypot.value||'',formStartedAt:formStartedAt});removeTyping(typing);if(wrap.parentNode)wrap.parentNode.removeChild(wrap);userSay(n+' — '+(contact.whatsapp||contact.email||''),{historyText:'Ya completé el formulario de contacto para dar seguimiento al proyecto.'});
+      if(lead.ok&&lead.stored){leadCaptured=true;leadFinalized=false;leadContact=null;persistState();botSay('¡Listo! Ya tenemos tus datos para el seguimiento. Podemos seguir afinando el proyecto sin volver a pedirte la información de contacto.');if(!continuationAsked){continuationAsked=true;persistState();botSay('¿Quieres agregar alguna función, estilo visual, referencia, integración o detalle adicional a tu proyecto?');}}else botSay('Tuvimos un problema guardando tu información. Puedes intentarlo de nuevo en un momento o escribirnos directo por WhatsApp.');
     });
   }
 
-  async function sendLead(contact){
-    try{
-      var response=await fetch(LEAD_ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:sessionId,consent:true,contact:contact})});
-      var data=null; try{data=await response.json();}catch(e){data=null;}
-      if(!response.ok || !data || data.ok!==true) return {ok:false,stored:false,notified:{email:false,whatsapp:false}};
-      return data;
-    }catch(err){ return {ok:false,stored:false,notified:{email:false,whatsapp:false}}; }
+  function isCompletionIntent(text){
+    var t=(text||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+    return /\b(ya\s+(?:termine|terminamos|esta\s+listo|listo|quedo\s+listo|quedo\s+todo)|eso\s+es\s+todo|no\s+agrego\s+mas|no\s+hay\s+mas|con\s+eso\s+esta|con\s+eso\s+quedamos|puedes\s+finalizar|finaliza(?:r)?|termina(?:r)?|cerr(?:a|ar)\s+(?:el\s+)?proyecto)\b/i.test(t);
   }
 
-  if(quick){
-    quick.addEventListener('click',function(e){
-      var btn=e.target.closest('[data-jbai-quick]');
-      if(!btn || isSending) return;
-      submitUserMessage(QUICK_LABELS[btn.getAttribute('data-jbai-quick')] || btn.textContent);
+  function showFinishPrompt(){
+    if(!leadCaptured||leadFinalized)return;
+    var old=document.getElementById('jbaiFinishPrompt');
+    if(old&&old.parentNode)old.parentNode.removeChild(old);
+    botSay('¿Ya terminaste de contarme todo lo que necesitas para tu proyecto, o quieres agregar algún detalle más antes de enviarlo a nuestro equipo?');
+    var row=document.createElement('div');row.className='jbai-quick';row.id='jbaiFinishPrompt';row.style.marginTop='2px';
+    var yes=document.createElement('button');yes.type='button';yes.className='jbai-chip';yes.textContent='✅ Sí, ya terminé';
+    var more=document.createElement('button');more.type='button';more.className='jbai-chip';more.textContent='➕ Quiero agregar más';
+    row.appendChild(yes);row.appendChild(more);body.appendChild(row);scrollToBottom();
+    function cleanup(){if(row.parentNode)row.parentNode.removeChild(row);}
+    yes.addEventListener('click',async function(){cleanup();await finalizeLead();});
+    more.addEventListener('click',function(){cleanup();userSay('➕ Quiero agregar más detalles al proyecto.');botSay('Perfecto. Cuéntame qué más quieres agregar y lo tendremos en cuenta antes de finalizar la solicitud.');if(input)input.focus();});
+  }
+
+  async function finalizeLead(){
+    if(!leadCaptured||isSending)return;
+    setSendingState(true);var typing=showTyping();
+    var result=await sendLead(null,true,true,null);
+    removeTyping(typing);setSendingState(false);
+    if(result.ok&&result.finalized){leadFinalized=true;persistState();if(result.notified&&(result.notified.email||result.notified.whatsapp)){botSay('Perfecto. Tu solicitud quedó finalizada y fue enviada a nuestro equipo por los canales correspondientes. Ya pueden revisarla y contactarte.');}else{botSay('Perfecto. Tu solicitud quedó finalizada y guardada. Tuvimos un inconveniente temporal con las notificaciones, pero el registro quedó guardado para revisión.');}}
+    else{botSay('No pude finalizar la solicitud en este momento. Tus datos siguen guardados; puedes intentarlo nuevamente.');showFinishPrompt();}
+    if(input)input.focus();
+  }
+
+  async function sendLead(contact,isUpdate,finalize,botCheck){try{var r=await fetch(LEAD_ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:sessionId,consent:true,contact:contact,update:isUpdate===true,finalize:finalize===true,botCheck:botCheck||null})});var d=null;try{d=await r.json();}catch(e){}if(!r.ok||!d||d.ok!==true)return{ok:false,stored:false,finalized:false,notified:{email:false,whatsapp:false}};return d;}catch(e){return{ok:false,stored:false,finalized:false,notified:{email:false,whatsapp:false}};}}
+
+  function restoreState(){try{var h=sessionStorage.getItem(HISTORY_KEY),v=sessionStorage.getItem(VISUAL_KEY),l=sessionStorage.getItem('jbaiLeadState'),ps=sessionStorage.getItem('jbaiProjectServices');if(h){var ph=JSON.parse(h);if(Array.isArray(ph))history=ph.filter(function(x){return x&&x.role&&(x.role==='user'||x.role==='assistant')&&typeof x.content==='string';});}if(v){var pv=JSON.parse(v);if(Array.isArray(pv))visualLog=pv.filter(function(x){return x&&(x.who==='user'||x.who==='bot')&&typeof x.text==='string';});}if(l){var pl=JSON.parse(l);consentAsked=!!pl.consentAsked;leadCaptured=!!pl.leadCaptured;continuationAsked=!!pl.continuationAsked;leadFinalized=!!pl.leadFinalized;leadContact=null;}if(ps){var pp=JSON.parse(ps);if(Array.isArray(pp))projectServices=pp.filter(function(x){return typeof x==='string';});}}catch(e){}}
+  restoreState();injectContactStyles();
+  if(visualLog.length){var old=body.querySelectorAll('.jbai-msg');for(var z=old.length-1;z>=0;z--){if(old[z]&&old[z].parentNode)old[z].parentNode.removeChild(old[z]);}visualLog.forEach(function(x){addMessage(x.text,x.who,{skipVisualLog:true,skipHistory:true});});conversationStarted=true;if(quick)quick.style.display='none';}
+  var selectedQuickOptions=[];
+  // Necesidades acumuladas durante toda la conversación. Nunca reemplaza una opción anterior.
+  var SERVICE_DEFINITIONS=[
+    {key:'web',label:'Página web',re:/\b(p[aá]gina|sitio|web)\b/i},
+    {key:'tienda',label:'Tienda online',re:/\b(tienda|ecommerce|e-commerce|carrito|cat[aá]logo con compras)\b/i},
+    {key:'app',label:'Aplicación',re:/\b(app|aplicaci[oó]n(?:es)?(?: m[oó]vil(?:es)?)?)\b/i},
+    {key:'sistema',label:'Sistema para negocio',re:/\b(sistema|software para mi negocio|sistema administrativo)\b/i},
+    {key:'ia',label:'IA / Automatización',re:/\b(inteligencia artificial|\bia\b|automatizaci[oó]n|chatbot|asistente virtual)\b/i}
+  ];
+  function detectProjectServices(text){
+    var t=String(text||'');
+    SERVICE_DEFINITIONS.forEach(function(def){if(def.re.test(t)&&projectServices.indexOf(def.key)===-1)projectServices.push(def.key);});
+    try{sessionStorage.setItem('jbaiProjectServices',JSON.stringify(projectServices));}catch(e){}
+  }
+  function projectServicesText(){return projectServices.map(function(k){for(var i=0;i<SERVICE_DEFINITIONS.length;i++)if(SERVICE_DEFINITIONS[i].key===k)return SERVICE_DEFINITIONS[i].label;return '';}).filter(Boolean).join(', ');}
+  function renderServicePicker(){
+    if(!body||!conversationStarted||document.getElementById('jbaiServicePicker'))return;
+    var row=document.createElement('div');row.className='jbai-quick';row.id='jbaiServicePicker';row.style.marginTop='6px';
+    var b=document.createElement('button');b.type='button';b.className='jbai-chip';b.textContent='➕ Agregar otro servicio';b.addEventListener('click',showServicePicker);row.appendChild(b);body.appendChild(row);
+  }
+  function showServicePicker(){
+    var old=document.getElementById('jbaiServicePickerOptions');if(old&&old.parentNode)old.parentNode.removeChild(old);
+    var row=document.createElement('div');row.className='jbai-quick';row.id='jbaiServicePickerOptions';row.style.marginTop='2px';
+    ['web','tienda','app','sistema','ia'].forEach(function(k){
+      var def=SERVICE_DEFINITIONS.find(function(x){return x.key===k;});if(!def)return;
+      var b=document.createElement('button');b.type='button';b.className='jbai-chip'+(projectServices.indexOf(k)>-1?' jbai-chip-selected':'');b.textContent=def.label;b.setAttribute('aria-pressed',projectServices.indexOf(k)>-1?'true':'false');
+      b.addEventListener('click',function(){if(projectServices.indexOf(k)===-1){projectServices.push(k);}else{projectServices=projectServices.filter(function(x){return x!==k;});}b.classList.toggle('jbai-chip-selected',projectServices.indexOf(k)>-1);b.setAttribute('aria-pressed',projectServices.indexOf(k)>-1?'true':'false');try{sessionStorage.setItem('jbaiProjectServices',JSON.stringify(projectServices));}catch(e){}});row.appendChild(b);
     });
+    var done=document.createElement('button');done.type='button';done.className='jbai-chip';done.textContent='✓ Continuar';done.addEventListener('click',function(){if(row.parentNode)row.parentNode.removeChild(row);if(projectServices.length){userSay('También necesito: '+projectServicesText()+'.',{historyText:'El cliente indicó que su proyecto incluye: '+projectServicesText()+'. Mantener estas necesidades acumuladas sin reemplazar las anteriores.'});botSay('Perfecto. Mantendré esas necesidades dentro del mismo proyecto y seguiré haciendo preguntas teniendo en cuenta todo lo que ya me contaste.');}});row.appendChild(done);body.appendChild(row);scrollToBottom();
   }
-
-  function autoGrow(){ if(!input) return; input.style.height='auto'; input.style.height=Math.min(input.scrollHeight,90)+'px'; }
-  input && input.addEventListener('input',autoGrow);
-
-  function sendMessage(){
-    if(isSending || !input) return;
-    var text=(input.value||'').trim(); if(!text) return;
-    input.value=''; autoGrow(); submitUserMessage(text);
+  function renderQuickContinue(){
+    if(!quick)return;
+    var old=quick.querySelector('.jbai-quick-continue');
+    if(old&&old.parentNode)old.parentNode.removeChild(old);
+    if(!selectedQuickOptions.length)return;
+    var row=document.createElement('div');row.className='jbai-quick jbai-quick-continue';
+    var b=document.createElement('button');b.type='button';b.className='jbai-chip';b.textContent='Continuar con '+selectedQuickOptions.length+' opción'+(selectedQuickOptions.length===1?'':'es')+' →';
+    b.addEventListener('click',function(){
+      if(isSending||!selectedQuickOptions.length)return;
+      var typed=(input&&input.value||'').trim();
+      var labels=selectedQuickOptions.map(function(k){return QUICK_LABELS[k]||'';}).filter(Boolean);
+      var message=labels.join(' + ')+(typed?'\n'+typed:'');
+      selectedQuickOptions=[];
+      quick.querySelectorAll('[data-jbai-quick]').forEach(function(x){x.classList.remove('jbai-chip-selected');x.setAttribute('aria-pressed','false');});
+      if(input){input.value='';autoGrow();}
+      renderQuickContinue();
+      submitUserMessage(message);
+    });
+    row.appendChild(b);quick.appendChild(row);
   }
-
-  sendBtn && sendBtn.addEventListener('click',sendMessage);
-  input && input.addEventListener('keydown',function(e){
-    if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); sendMessage(); }
+  if(quick)quick.addEventListener('click',function(e){
+    var b=e.target.closest('[data-jbai-quick]');
+    if(!b||isSending)return;
+    e.preventDefault();
+    var k=b.getAttribute('data-jbai-quick');
+    if(selectedQuickOptions.indexOf(k)===-1){selectedQuickOptions.push(k);b.classList.add('jbai-chip-selected');b.setAttribute('aria-pressed','true');}
+    else{selectedQuickOptions=selectedQuickOptions.filter(function(x){return x!==k;});b.classList.remove('jbai-chip-selected');b.setAttribute('aria-pressed','false');}
+    renderQuickContinue();
+    if(input)input.focus();
   });
-
-  restoreVisualLog();
+  if(quick)quick.querySelectorAll('[data-jbai-quick]').forEach(function(b){b.setAttribute('aria-pressed','false');});
+  function autoGrow(){if(!input)return;input.style.height='auto';input.style.height=Math.min(input.scrollHeight,90)+'px';}if(input)input.addEventListener('input',autoGrow);
+  function sendMessage(){if(isSending)return;var t=(input.value||'').trim();if(!t)return;input.value='';autoGrow();submitUserMessage(t);}if(sendBtn)sendBtn.addEventListener('click',sendMessage);if(input)input.addEventListener('keydown',function(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();}});
 })();
 </script>
 </body>
