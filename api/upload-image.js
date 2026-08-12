@@ -1,48 +1,113 @@
 // ============================================================
-// FUNCIÓN (Vercel): sube una imagen (base64) a Vercel Blob Storage
-// y devuelve la URL pública directa — a diferencia de Netlify,
-// Vercel Blob ya entrega un link público real, así que no hace
-// falta una función aparte para "servir" la imagen.
+// Vercel: /api/upload-image.js
+// Subida segura de imágenes del panel administrativo JB Tech.
 //
-// Requiere tener conectado Vercel Blob al proyecto
-// (Vercel → Storage → Create Database → Blob).
+// Requiere en Vercel:
+//   BLOB_READ_WRITE_TOKEN
+//   ADMIN_PASSWORD (o ADMIN_PANEL_PASSWORD)
+//   ADMIN_USER (recomendado)
 //
-// Protegida con usuario y contraseña (ADMIN_USER / ADMIN_PASSWORD
-// en Vercel → Project Settings → Environment Variables).
+// El navegador NUNCA recibe el token de Vercel Blob.
 // ============================================================
 
-const { put } = require('@vercel/blob');
 const crypto = require('crypto');
+const { put } = require('@vercel/blob');
+
+const MAX_BYTES = 6 * 1024 * 1024;
+const ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
+
+function fail(res, status, message, code) {
+  return res.status(status).json({ ok: false, error: message, code });
+}
+
+function safeEqual(a, b) {
+  const aa = Buffer.from(String(a));
+  const bb = Buffer.from(String(b));
+  if (aa.length !== bb.length) return false;
+  return crypto.timingSafeEqual(aa, bb);
+}
+
+function credentialsAreValid(username, password) {
+  const expectedUser = process.env.ADMIN_USER || '';
+  const expectedPassword = process.env.ADMIN_PASSWORD || process.env.ADMIN_PANEL_PASSWORD || '';
+
+  if (!expectedPassword) return { ok: false, configured: false };
+  if (expectedUser && !safeEqual(username, expectedUser)) return { ok: false, configured: true };
+  if (!safeEqual(password, expectedPassword)) return { ok: false, configured: true };
+
+  return { ok: true, configured: true };
+}
 
 module.exports = async function handler(req, res) {
+  res.setHeader('Cache-Control', 'no-store, max-age=0');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method Not Allowed' });
+    res.setHeader('Allow', 'POST');
+    return fail(res, 405, 'Método no permitido.', 'UPLOAD_METHOD');
+  }
+
+  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+    return fail(
+      res,
+      503,
+      'El almacenamiento de imágenes no está configurado. Falta BLOB_READ_WRITE_TOKEN en Vercel.',
+      'BLOB_NOT_CONFIGURED'
+    );
   }
 
   try {
-    const { username, password, dataBase64, contentType } = req.body || {};
-
-    if (username !== process.env.ADMIN_USER || password !== process.env.ADMIN_PASSWORD) {
-      return res.status(401).json({ error: 'Usuario o contraseña incorrectos' });
+    const body = req.body;
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
+      return fail(res, 400, 'Formato de solicitud inválido.', 'UPLOAD_BODY');
     }
+
+    const username = typeof body.username === 'string' ? body.username.trim() : '';
+    const password = typeof body.password === 'string' ? body.password : '';
+    const dataBase64 = typeof body.dataBase64 === 'string' ? body.dataBase64 : '';
+    const contentType = typeof body.contentType === 'string' ? body.contentType.toLowerCase() : '';
+
+    const auth = credentialsAreValid(username, password);
+    if (!auth.configured) {
+      return fail(res, 503, 'El acceso administrativo no está configurado.', 'ADMIN_NOT_CONFIGURED');
+    }
+    if (!auth.ok) {
+      return fail(res, 401, 'Sesión administrativa no válida.', 'ADMIN_UNAUTHORIZED');
+    }
+
     if (!dataBase64) {
-      return res.status(400).json({ error: 'Falta la imagen' });
-    }
-    if (dataBase64.length > 4 * 1024 * 1024) {
-      return res.status(413).json({ error: 'La imagen es demasiado pesada. Máximo ~3MB.' });
+      return fail(res, 400, 'No se recibió ninguna imagen.', 'UPLOAD_EMPTY');
     }
 
-    const buffer = Buffer.from(dataBase64, 'base64');
-    const ext = (contentType || 'image/jpeg').split('/')[1] || 'jpg';
-    const filename = 'proyectos/' + Date.now() + '-' + crypto.randomBytes(6).toString('hex') + '.' + ext;
+    if (!ALLOWED_TYPES.has(contentType)) {
+      return fail(res, 400, 'Formato de imagen no permitido.', 'UPLOAD_TYPE');
+    }
 
-    const blob = await put(filename, buffer, {
+    let buffer;
+    try {
+      buffer = Buffer.from(dataBase64, 'base64');
+    } catch {
+      return fail(res, 400, 'La imagen recibida no es válida.', 'UPLOAD_BASE64');
+    }
+
+    if (!buffer.length || buffer.length > MAX_BYTES) {
+      return fail(res, 413, 'La imagen supera el tamaño máximo permitido.', 'UPLOAD_SIZE');
+    }
+
+    const ext = contentType === 'image/png' ? 'png' : contentType === 'image/webp' ? 'webp' : 'jpg';
+    const pathname = `jb-tech/proyectos/${Date.now()}-${crypto.randomUUID()}.${ext}`;
+
+    const blob = await put(pathname, buffer, {
       access: 'public',
-      contentType: contentType || 'image/jpeg'
+      contentType,
+      token: process.env.BLOB_READ_WRITE_TOKEN,
+      addRandomSuffix: false
     });
 
     return res.status(200).json({ ok: true, url: blob.url });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error('upload-image error:', err && err.message);
+    return fail(res, 500, 'No se pudo subir la imagen al almacenamiento.', 'UPLOAD_INTERNAL');
   }
 };
