@@ -87,6 +87,7 @@ module.exports = async function handler(req, res) {
     }
 
     const consent = body.consent === true;
+    const isUpdate = body.update === true;
 
     let contact = null;
     if (consent) {
@@ -135,15 +136,17 @@ module.exports = async function handler(req, res) {
     // Guardar en Supabase
     // ------------------------------------------------------
     let stored = false;
+    let storedResult = null;
     try {
-      await db.saveLeadPackage({
+      storedResult = await db.saveLeadPackage({
         sessionId: sessionId,
         idioma: 'es',
         consent: true,
         policyVersion: CONFIG.POLICY_VERSION,
         contact: contact,
         summary: summary,
-        leadScore: leadScore
+        leadScore: leadScore,
+        isUpdate: isUpdate
       });
       stored = true;
     } catch (dbErr) {
@@ -160,24 +163,45 @@ module.exports = async function handler(req, res) {
     // fuente de verdad para el formato de las notificaciones);
     // aquí solo se le pasan los datos ya validados.
     // ------------------------------------------------------
-    const emailHtml = notify.buildLeadEmailHtml({
-      contact: contact,
-      summary: summary,
-      leadScore: leadScore,
-      stored: stored
-    });
-    const emailResult = await notify.sendEmailNotification('Nuevo lead — JB TECH AI: ' + contact.name, emailHtml);
+    // Si el cliente solo envió el mismo estado de proyecto otra vez,
+    // no se genera otra notificación. El mismo lead se conserva y no
+    // llenamos Gmail/WhatsApp de duplicados.
+    const changed = storedResult && storedResult.changed === true;
+    const created = storedResult && storedResult.created === true;
+    const updated = storedResult && storedResult.updated === true;
 
-    const waText = notify.buildWhatsAppText({
-      contact: contact,
-      summary: summary,
-      leadScore: leadScore
-    });
-    const waResult = await notify.sendWhatsAppNotification(waText);
+    let emailResult = { ok: false };
+    let waResult = { ok: false };
+
+    if (changed) {
+      const eventType = created ? 'new' : 'update';
+      const emailHtml = notify.buildLeadEmailHtml({
+        contact: contact,
+        summary: summary,
+        leadScore: leadScore,
+        stored: stored,
+        eventType: eventType
+      });
+      const subject = created
+        ? 'Nuevo lead — JB TECH AI: ' + contact.name
+        : 'Actualización de lead — JB TECH AI: ' + contact.name;
+      emailResult = await notify.sendEmailNotification(subject, emailHtml);
+
+      const waText = notify.buildWhatsAppText({
+        contact: contact,
+        summary: summary,
+        leadScore: leadScore,
+        eventType: eventType
+      });
+      waResult = await notify.sendWhatsAppNotification(waText);
+    }
 
     return res.status(200).json({
       ok: true,
       stored: stored,
+      created: created,
+      updated: updated,
+      changed: changed,
       notified: { email: emailResult.ok, whatsapp: waResult.ok }
     });
   } catch (err) {
