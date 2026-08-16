@@ -42,10 +42,15 @@ button{font-family:inherit;cursor:pointer;border:none;border-radius:8px;padding:
 .project-item .row-top span{font-family:var(--font-mono);font-size:.72rem;color:var(--muted)}
 .img-drop{cursor:pointer;border-radius:8px;transition:opacity .15s ease}
 .img-drop.drag-over{opacity:.75}
-.img-preview{width:100%;height:140px;border-radius:8px;border:1px dashed var(--line-strong);background:var(--ink);display:flex;align-items:center;justify-content:center;overflow:hidden;margin-bottom:0;color:var(--muted);font-size:.8rem;text-align:center;padding:0 12px}
-.img-preview img{width:100%;height:100%;object-fit:contain}
+.img-preview{width:100%;height:140px;border-radius:8px;border:1px dashed var(--line-strong);background:radial-gradient(120% 130% at 50% 38%,var(--panel-2) 0%,var(--ink) 78%);display:flex;align-items:center;justify-content:center;overflow:hidden;margin-bottom:0;color:var(--muted);font-size:.8rem;text-align:center;padding:0 12px}
+.img-preview-logo img{width:104px;height:104px;object-fit:contain;border-radius:50%;box-shadow:0 14px 28px -12px rgba(0,0,0,.5),0 0 0 1px var(--line)}
+.img-preview-screenshot{padding:0;background:var(--panel-2)}
+.img-preview-screenshot img{width:100%;height:100%;object-fit:cover;object-position:top center;border-radius:0;box-shadow:none}
 .img-drop.drag-over .img-preview{border-color:var(--signal)}
 .drop-hint{pointer-events:none}
+.img-type-toggle{display:flex;gap:8px;margin-bottom:0;flex-wrap:wrap}
+.img-type-btn{flex:1;min-width:150px;padding:9px 12px;font-size:.78rem;border-radius:8px;border:1px solid var(--line-strong);background:var(--panel);color:var(--muted);cursor:pointer;transition:all .15s ease}
+.img-type-btn.active{background:var(--signal);border-color:var(--signal);color:#fff}
 .img-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:10px}
 .img-actions button{padding:9px 16px;font-size:.82rem}
 .img-size-info{font-family:var(--font-mono);font-size:.72rem}
@@ -382,13 +387,21 @@ function buildProjectCard(p,i){
   div.className='project-item';
   const hasImg=!!p.image;
   const isLink=p.image&&p.image.indexOf('data:')!==0;
+  const imgType=p.imageType==='screenshot'?'screenshot':'logo';
   div.innerHTML=
     '<div class="row-top"><span>PROYECTO '+(i+1)+'</span>'+
     '<button type="button" class="btn-danger" onclick="removeProject('+i+')">Eliminar proyecto</button></div>'+
 
+    '<label>Tipo de imagen</label>'+
+    '<div class="img-type-toggle" id="imgTypeToggle'+i+'">'+
+      '<button type="button" class="img-type-btn'+(imgType==='logo'?' active':'')+'" onclick="updateProjectImageType('+i+',\'logo\')">Logo (círculo)</button>'+
+      '<button type="button" class="img-type-btn'+(imgType==='screenshot'?' active':'')+'" onclick="updateProjectImageType('+i+',\'screenshot\')">Captura de pantalla (rectangular)</button>'+
+    '</div>'+
+    '<p class="sub" style="margin:6px 0 14px">Elige "Logo" para un ícono o marca. Elige "Captura de pantalla" para mostrar la página del proyecto tal cual se ve.</p>'+
+
     '<label>Imagen del proyecto</label>'+
     '<div class="img-drop" id="imgDrop'+i+'" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event,'+i+')" onclick="document.getElementById(\'imgFile'+i+'\').click()">'+
-      '<div class="img-preview" id="imgPreview'+i+'">'+
+      '<div class="img-preview img-preview-'+imgType+'" id="imgPreview'+i+'">'+
         (hasImg?'<img src="'+escAttr(p.image)+'" alt="" onerror="this.parentElement.textContent=\'No se pudo mostrar esta imagen.\'">':'<span class="drop-hint">Toca aquí o arrastra una imagen</span>')+
       '</div>'+
     '</div>'+
@@ -414,6 +427,21 @@ function buildProjectCard(p,i){
 }
 
 function updateProject(i,field,value){if(projectsData[i])projectsData[i][field]=value}
+
+function updateProjectImageType(i,type){
+  updateProject(i,'imageType',type);
+  const toggle=document.getElementById('imgTypeToggle'+i);
+  if(toggle){
+    const btns=toggle.querySelectorAll('.img-type-btn');
+    btns[0].classList.toggle('active',type==='logo');
+    btns[1].classList.toggle('active',type==='screenshot');
+  }
+  const preview=document.getElementById('imgPreview'+i);
+  if(preview){
+    preview.classList.remove('img-preview-logo','img-preview-screenshot');
+    preview.classList.add('img-preview-'+type);
+  }
+}
 
 function renderImgPreview(i,src){
   const preview=document.getElementById('imgPreview'+i);
@@ -573,7 +601,7 @@ function removeProject(i){
 }
 
 function addProject(){
-  projectsData.push({name:'Nuevo proyecto',tag:'WEB',description:'',link:'',image:null});
+  projectsData.push({name:'Nuevo proyecto',tag:'WEB',description:'',link:'',image:null,imageType:'logo'});
   renderProjects(projectsData);
 }
 
