@@ -13,11 +13,20 @@
 //      la API key, ni detalles del proveedor, ni errores internos.
 //
 // NO hace todavía (fases posteriores):
-//   - System prompt / personalidad de JB TECH AI
 //   - Base de conocimiento (knowledge.js)
-//   - Detección de leads / resúmenes / documentos / exportaciones
 //   - Escalamiento automático a un segundo modelo
 //   - Memoria real de conversación entre peticiones
+//
+// AJUSTE DE PRIVACIDAD (posterior a la fase 3 original):
+//   Antes de llamar a Gemini se consulta api/_lib/privacy-guard.js
+//   para (a) cortar de inmediato si la sesión/IP ya está bloqueada
+//   por intentos previos, y (b) evaluar si el mensaje actual busca
+//   información personal de José o del equipo. Si se detecta un
+//   intento, la conversación NUNCA llega al modelo ese turno: se
+//   responde con el aviso escalonado correspondiente o, al 4to
+//   intento, con el bloqueo temporal de 2 horas. El contrato de
+//   respuesta no cambia — solo se agregan los campos opcionales
+//   meta.blocked / meta.blockedUntil cuando aplica.
 //
 // Variable de entorno usada:
 //   GEMINI_API_KEY  -> leída exclusivamente en api/_lib/ai-router.js
@@ -29,6 +38,7 @@
 const { kv } = require('@vercel/kv');
 const aiRouter = require('./_lib/ai-router.js');
 const leadDetector = require('./_lib/lead-detector.js');
+const privacyGuard = require('./_lib/privacy-guard.js');
 
 // ------------------------------------------------------------
 // CONFIGURACIÓN — límites fáciles de ajustar
@@ -190,13 +200,38 @@ module.exports = async function handler(req, res) {
     }
 
     const { sessionId, messages } = validation;
+    const ip = getClientIp(req);
+
+    // ------------------------------------------------------
+    // 4.1 Protección de privacidad — corte temprano.
+    //
+    // Si esta sesión/IP ya está bloqueada por intentos previos de
+    // obtener información privada, se responde de inmediato con
+    // el mensaje de bloqueo, SIN tocar el límite normal de chat ni
+    // llamar a Gemini. El bloqueo vive en KV (namespace "privacy:*",
+    // separado de "chat:*") y expira solo, sin ningún proceso aparte.
+    // ------------------------------------------------------
+    const blockStatus = await privacyGuard.getBlockStatus(kv, ip, sessionId);
+    if (blockStatus.blocked) {
+      return res.status(200).json({
+        ok: true,
+        reply: privacyGuard.BLOCK_MESSAGE,
+        meta: {
+          engineConnected: true,
+          sessionId: sessionId,
+          messagesReceived: messages.length,
+          leadScore: null,
+          blocked: true,
+          blockedUntil: blockStatus.blockedUntil
+        }
+      });
+    }
 
     // ------------------------------------------------------
     // 5. Rate limiting — namespace "chat:*", separado del
     //    formulario de contacto ("ratelimit:*") y de cualquier
     //    otro límite existente en el proyecto.
     // ------------------------------------------------------
-    const ip = getClientIp(req);
 
     const ipLimit = await checkAndBumpLimit(
       'chat:ip:' + ip,
@@ -214,6 +249,60 @@ module.exports = async function handler(req, res) {
     );
     if (!sessionLimit.allowed) {
       return fail(res, 429, 'Esta conversación alcanzó su límite de mensajes. Puedes iniciar una nueva o escribir por WhatsApp.');
+    }
+
+    // ------------------------------------------------------
+    // 5.1 Protección de privacidad — mensaje actual.
+    //
+    // Se evalúa el último mensaje del usuario ANTES de llamar a
+    // Gemini. Si se detecta un intento de obtener información
+    // privada, la conversación NUNCA llega al modelo para ese
+    // turno — se responde con el aviso correspondiente (o el
+    // bloqueo, si es el 4to intento) directamente desde aquí.
+    // Esto es best-effort por diseño (igual que leadDetector): si
+    // algo falla, isPrivacyProbe ya resuelve a "false" internamente
+    // y la conversación sigue con normalidad.
+    // ------------------------------------------------------
+    let privacyProbeDetected = false;
+    try {
+      privacyProbeDetected = await privacyGuard.isPrivacyProbe(messages);
+    } catch (guardErr) {
+      console.log('chat.js error en privacy-guard:', guardErr && guardErr.message);
+      privacyProbeDetected = false;
+    }
+
+    if (privacyProbeDetected) {
+      const attemptResult = await privacyGuard.registerAttempt(kv, ip, sessionId);
+      const replyText = attemptResult.blocked
+        ? privacyGuard.BLOCK_MESSAGE
+        : privacyGuard.WARNING_MESSAGES[attemptResult.warningIndex];
+
+      // Se recupera el leadScore ya calculado en turnos anteriores
+      // (igual que el camino normal cuando no toca reevaluar el
+      // lead en este turno) para no romper el flujo de consentimiento
+      // por un turno dedicado a rechazar una pregunta privada.
+      let previousLeadScore = null;
+      try {
+        const previous = await kv.get('chat:lead:' + sessionId);
+        if (previous && typeof previous.leadScore === 'number') {
+          previousLeadScore = previous.leadScore;
+        }
+      } catch (kvErr) {
+        previousLeadScore = null;
+      }
+
+      return res.status(200).json({
+        ok: true,
+        reply: replyText,
+        meta: {
+          engineConnected: true,
+          sessionId: sessionId,
+          messagesReceived: messages.length,
+          leadScore: previousLeadScore,
+          blocked: attemptResult.blocked,
+          blockedUntil: attemptResult.blockedUntil || undefined
+        }
+      });
     }
 
     // ------------------------------------------------------
