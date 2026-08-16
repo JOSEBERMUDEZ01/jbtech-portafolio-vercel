@@ -1733,6 +1733,7 @@ footer{ padding:50px 0 40px; }
   if(!launcher||!panel||!body)return;
   var CHAT_ENDPOINT='/api/chat',LEAD_ENDPOINT='/api/lead',REQUEST_TIMEOUT_MS=25000,MAX_HISTORY_TO_SEND=20,HISTORY_KEY='jbaiHistory',VISUAL_KEY='jbaiVisualLog',SESSION_KEY='jbaiSessionId';
   var isOpen=false,isSending=false,conversationStarted=false,history=[],visualLog=[],currentController=null,lastFailedHistory=null,projectServices=[];
+  var blockedUntil=0,blockedTimer=null,BLOCKED_KEY='jbaiBlockedUntil';
   var LEAD_SCORE_THRESHOLD=60,consentAsked=false,leadCaptured=false,leadContact=null,continuationAsked=false,leadFinalized=false;
   var QUICK_LABELS={idea:'💡 Tengo una idea',web:'🌐 Quiero una página web',tienda:'🛒 Quiero una tienda online',app:'📱 Quiero una aplicación',sistema:'⚙️ Necesito un sistema para mi negocio',nose:'🤔 No sé qué necesito',pregunta:'💻 Tengo una pregunta de programación'};
 
@@ -1757,12 +1758,33 @@ footer{ padding:50px 0 40px; }
   function removeThinking(){var e=document.getElementById('jbaiThinking');if(e&&e.parentNode)e.parentNode.removeChild(e);}
   function showRetryButton(){var old=document.getElementById('jbaiRetry');if(old&&old.parentNode)old.parentNode.removeChild(old);var row=document.createElement('div');row.className='jbai-quick';row.id='jbaiRetry';var b=document.createElement('button');b.type='button';b.className='jbai-chip';b.textContent='↻ Reintentar';b.addEventListener('click',async function(){if(isSending||!lastFailedHistory)return;if(row.parentNode)row.parentNode.removeChild(row);await sendCurrentHistoryToBackend(lastFailedHistory);});row.appendChild(b);body.appendChild(row);scrollToBottom();}
   function hideQuickChipsIfFirstMessage(){if(!conversationStarted&&quick){quick.style.display='none';conversationStarted=true;setTimeout(renderServicePicker,0);}}
-  function setSendingState(s){isSending=s;if(sendBtn)sendBtn.disabled=s;if(input)input.disabled=s;}
+  function setSendingState(s){isSending=s;if(sendBtn)sendBtn.disabled=s||isBlockedNow();if(input)input.disabled=s||isBlockedNow();}
+  function isBlockedNow(){return blockedUntil>Date.now();}
+  function applyBlockState(untilTs){
+    blockedUntil=untilTs||0;
+    var blocked=isBlockedNow();
+    if(sendBtn)sendBtn.disabled=blocked||isSending;
+    if(input)input.disabled=blocked||isSending;
+    if(blockedTimer){clearTimeout(blockedTimer);blockedTimer=null;}
+    try{
+      if(blocked)sessionStorage.setItem(BLOCKED_KEY,String(blockedUntil));
+      else sessionStorage.removeItem(BLOCKED_KEY);
+    }catch(e){}
+    if(blocked){
+      blockedTimer=setTimeout(function(){applyBlockState(0);},Math.max(1000,blockedUntil-Date.now()));
+    }
+  }
+  function restoreBlockState(){
+    try{
+      var stored=parseInt(sessionStorage.getItem(BLOCKED_KEY)||'0',10);
+      if(stored&&stored>Date.now())applyBlockState(stored);
+    }catch(e){}
+  }
   function friendlyErrorFor(status,msg){var internal=/chat\.js error|ai router|generativelanguage|api key|stack trace|this operation was aborted/i;if(msg&&!internal.test(String(msg)))return msg;if(status===429)return'Has alcanzado temporalmente el límite de mensajes. Inténtalo nuevamente en unos minutos.';if(status===400)return'No pudimos procesar ese mensaje. Intenta reformularlo.';if(status===502||status===503||status===504)return'El asistente está teniendo una demora temporal. Puedes reintentar en unos segundos.';return'El asistente no está disponible en este momento. Intenta de nuevo en unos segundos o escríbenos por WhatsApp.';}
-  async function askBackend(snapshot){var controller=typeof AbortController!=='undefined'?new AbortController():null;currentController=controller;var timer=controller?setTimeout(function(){controller.abort();},REQUEST_TIMEOUT_MS):null;try{var r=await fetch(CHAT_ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:sessionId,messages:(snapshot||history).slice(-MAX_HISTORY_TO_SEND)}),signal:controller?controller.signal:undefined});var d=null;try{d=await r.json();}catch(e){}if(!r.ok||!d||d.ok!==true)return{ok:false,message:friendlyErrorFor(r.status,d&&d.message),status:r.status};return{ok:true,reply:d.reply,leadScore:d.meta&&typeof d.meta.leadScore==='number'?d.meta.leadScore:null};}catch(e){var a=e&&e.name==='AbortError';return{ok:false,cancelled:a,message:a?'La solicitud fue cancelada.':'No pudimos conectar con el asistente. Verifica tu conexión e inténtalo nuevamente.'};}finally{if(timer)clearTimeout(timer);if(currentController===controller)currentController=null;}}
-  async function sendCurrentHistoryToBackend(snapshot){if(isSending)return;setSendingState(true);showThinking();var r=await askBackend(snapshot||history);removeThinking();setSendingState(false);if(r.ok){lastFailedHistory=null;botSay(r.reply);if(!consentAsked&&!leadCaptured&&typeof r.leadScore==='number'&&r.leadScore>=LEAD_SCORE_THRESHOLD){consentAsked=true;persistState();setTimeout(showConsentPrompt,350);}else if(leadCaptured&&!leadFinalized){setTimeout(showFinishPrompt,250);}}else if(r.cancelled){botSay('Solicitud cancelada. Puedes enviar el mensaje nuevamente cuando quieras.');lastFailedHistory=null;}else{lastFailedHistory=(snapshot||history).slice();botSay(r.message);showRetryButton();}if(input)input.focus();return r;}
+  async function askBackend(snapshot){var controller=typeof AbortController!=='undefined'?new AbortController():null;currentController=controller;var timer=controller?setTimeout(function(){controller.abort();},REQUEST_TIMEOUT_MS):null;try{var r=await fetch(CHAT_ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:sessionId,messages:(snapshot||history).slice(-MAX_HISTORY_TO_SEND)}),signal:controller?controller.signal:undefined});var d=null;try{d=await r.json();}catch(e){}if(!r.ok||!d||d.ok!==true)return{ok:false,message:friendlyErrorFor(r.status,d&&d.message),status:r.status};return{ok:true,reply:d.reply,leadScore:d.meta&&typeof d.meta.leadScore==='number'?d.meta.leadScore:null,blocked:!!(d.meta&&d.meta.blocked),blockedUntil:d.meta&&typeof d.meta.blockedUntil==='number'?d.meta.blockedUntil:0};}catch(e){var a=e&&e.name==='AbortError';return{ok:false,cancelled:a,message:a?'La solicitud fue cancelada.':'No pudimos conectar con el asistente. Verifica tu conexión e inténtalo nuevamente.'};}finally{if(timer)clearTimeout(timer);if(currentController===controller)currentController=null;}}
+  async function sendCurrentHistoryToBackend(snapshot){if(isSending)return;setSendingState(true);showThinking();var r=await askBackend(snapshot||history);removeThinking();setSendingState(false);if(r.ok){lastFailedHistory=null;botSay(r.reply);if(r.blocked){applyBlockState(r.blockedUntil);}else if(!consentAsked&&!leadCaptured&&typeof r.leadScore==='number'&&r.leadScore>=LEAD_SCORE_THRESHOLD){consentAsked=true;persistState();setTimeout(showConsentPrompt,350);}else if(leadCaptured&&!leadFinalized){setTimeout(showFinishPrompt,250);}}else if(r.cancelled){botSay('Solicitud cancelada. Puedes enviar el mensaje nuevamente cuando quieras.');lastFailedHistory=null;}else{lastFailedHistory=(snapshot||history).slice();botSay(r.message);showRetryButton();}if(input&&!isBlockedNow())input.focus();return r;}
   async function submitUserMessage(text){
-    if(!text||isSending)return;
+    if(!text||isSending||isBlockedNow())return;
     hideQuickChipsIfFirstMessage();
     detectProjectServices(text);
     if(leadFinalized){leadFinalized=false;persistState();}
@@ -1826,7 +1848,7 @@ footer{ padding:50px 0 40px; }
   async function sendLead(contact,isUpdate,finalize,botCheck){try{var r=await fetch(LEAD_ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:sessionId,consent:true,contact:contact,update:isUpdate===true,finalize:finalize===true,botCheck:botCheck||null})});var d=null;try{d=await r.json();}catch(e){}if(!r.ok||!d||d.ok!==true)return{ok:false,stored:false,finalized:false,notified:{email:false,whatsapp:false}};return d;}catch(e){return{ok:false,stored:false,finalized:false,notified:{email:false,whatsapp:false}};}}
 
   function restoreState(){try{var h=sessionStorage.getItem(HISTORY_KEY),v=sessionStorage.getItem(VISUAL_KEY),l=sessionStorage.getItem('jbaiLeadState'),ps=sessionStorage.getItem('jbaiProjectServices');if(h){var ph=JSON.parse(h);if(Array.isArray(ph))history=ph.filter(function(x){return x&&x.role&&(x.role==='user'||x.role==='assistant')&&typeof x.content==='string';});}if(v){var pv=JSON.parse(v);if(Array.isArray(pv))visualLog=pv.filter(function(x){return x&&(x.who==='user'||x.who==='bot')&&typeof x.text==='string';});}if(l){var pl=JSON.parse(l);consentAsked=!!pl.consentAsked;leadCaptured=!!pl.leadCaptured;continuationAsked=!!pl.continuationAsked;leadFinalized=!!pl.leadFinalized;leadContact=null;}if(ps){var pp=JSON.parse(ps);if(Array.isArray(pp))projectServices=pp.filter(function(x){return typeof x==='string';});}}catch(e){}}
-  restoreState();injectContactStyles();
+  restoreState();restoreBlockState();injectContactStyles();
   if(visualLog.length){var old=body.querySelectorAll('.jbai-msg');for(var z=old.length-1;z>=0;z--){if(old[z]&&old[z].parentNode)old[z].parentNode.removeChild(old[z]);}visualLog.forEach(function(x){addMessage(x.text,x.who,{skipVisualLog:true,skipHistory:true});});conversationStarted=true;if(quick)quick.style.display='none';}
   var selectedQuickOptions=[];
   // Necesidades acumuladas durante toda la conversación. Nunca reemplaza una opción anterior.
@@ -1890,7 +1912,7 @@ footer{ padding:50px 0 40px; }
   });
   if(quick)quick.querySelectorAll('[data-jbai-quick]').forEach(function(b){b.setAttribute('aria-pressed','false');});
   function autoGrow(){if(!input)return;input.style.height='auto';input.style.height=Math.min(input.scrollHeight,90)+'px';}if(input)input.addEventListener('input',autoGrow);
-  function sendMessage(){if(isSending)return;var t=(input.value||'').trim();if(!t)return;input.value='';autoGrow();submitUserMessage(t);}if(sendBtn)sendBtn.addEventListener('click',sendMessage);if(input)input.addEventListener('keydown',function(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();}});
+  function sendMessage(){if(isSending||isBlockedNow())return;var t=(input.value||'').trim();if(!t)return;input.value='';autoGrow();submitUserMessage(t);}if(sendBtn)sendBtn.addEventListener('click',sendMessage);if(input)input.addEventListener('keydown',function(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();}});
 })();
 </script>
 </body>
